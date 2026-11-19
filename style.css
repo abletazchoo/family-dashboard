@@ -1029,3 +1029,46 @@ h1,h2,h3,h4,p{margin:0}
   .wt-item .note{font-size:8.5px}
   .wt-dow{font-size:11px}
 }
+
+/* =========================================================
+   거실 태블릿 상시 거치 — 화면 켜짐 토글 · 새 버전 알림 (2026-11 추가)
+   ========================================================= */
+.wake-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  border:1px solid var(--line);background:#FFFDF9;color:#8B7360;
+  border-radius:12px;padding:6px 10px;
+  font-family:var(--font-body);font-size:11.5px;font-weight:700;
+  box-shadow:var(--shadow-s);transition:.16s ease;white-space:nowrap;
+}
+.wake-btn:hover{background:var(--cream)}
+.wake-btn .wake-ico{font-size:13px;line-height:1;filter:grayscale(.45);transition:.2s ease}
+.wake-btn .wake-state{
+  font-size:9.5px;font-weight:800;letter-spacing:.4px;
+  padding:2px 5px;border-radius:6px;background:#F1E7DA;color:#9C8571;
+}
+.wake-btn.is-on{
+  background:linear-gradient(150deg,#FFF7E3,#FCEBC4);
+  border-color:#F2DCA8;color:#8A6A2E;
+  box-shadow:0 2px 10px rgba(232,200,122,.3);
+}
+.wake-btn.is-on .wake-ico{filter:none;text-shadow:0 0 8px rgba(255,196,64,.8)}
+.wake-btn.is-on .wake-state{background:#F7E1A8;color:#8A6430}
+/* 켜 두고 싶은데 아직 잠금을 못 잡은 상태(배터리 정책·화면 전환 직후) */
+.wake-btn.is-wait{border-style:dashed}
+.wake-btn.is-unsupported{opacity:.62}
+/* 아직 한 번도 정하지 않은 기기에서 살짝 눈에 띄게 */
+.wake-btn.is-hint{animation:wakeHint 3.2s ease-in-out infinite}
+@keyframes wakeHint{
+  0%,100%{box-shadow:var(--shadow-s)}
+  50%{box-shadow:0 0 0 4px rgba(243,220,147,.32)}
+}
+.update-pill{
+  border:1px solid #F2DCA8;background:#FFF4D9;color:#8A6430;
+  border-radius:999px;padding:5px 10px;font-size:11px;font-weight:800;
+  box-shadow:var(--shadow-s);transition:.16s ease;white-space:nowrap;
+}
+.update-pill:hover{background:#FDEBC2}
+@media (max-width:760px){
+  .wake-btn .wake-label{display:none}
+  .wake-btn{padding:6px 8px}
+}

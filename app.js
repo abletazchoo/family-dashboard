@@ -2229,16 +2229,227 @@ function bindEvents() {
     if (e.key === 'Escape' && !modalRoot.hidden) closeModal();
   });
 
-  // 창을 다시 열었을 때 날짜가 바뀌었으면 새 날로
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState !== 'visible') return;
-    const t = todayISO();
-    if (routineDate > t) { routineDate = t; renderRoutine(); renderWeekBoard(); }
+  // 태블릿이 잠들었다 깨어났을 때: 날짜가 바뀌었으면 새 날로, 날씨가 오래됐으면 새로
+  document.addEventListener('visibilitychange', () => { onDashboardVisible(); });
+}
+
+/* ---------------- 거실 태블릿 상시 거치: 화면 켜짐 · 자동 갱신 ---------------- */
+/* location.reload()로 통째로 새로고침하면 PIN 잠금 화면으로 돌아가 거실 태블릿이 멈출 수 있어요.
+   그래서 날짜 전환·날씨·시간표 하이라이트·새 배포 알림은 모두 화면 안에서 다시 그립니다. */
+
+/* 지금 화면의 배포 표식입니다. app.js를 고쳐 올릴 때 이 값을 함께 올려 두면
+   켜 둔 태블릿이 새 배포를 알아채고 조용히 알려 줍니다. */
+const BUILD = '2026-11-20-1';
+const WAKE_PREF_KEY = 'urijip-wake-v1';
+const WEATHER_REFRESH_MS = 30 * 60 * 1000;   // 날씨·미세먼지 30분마다
+const VERSION_CHECK_MS = 60 * 60 * 1000;     // 새 배포 확인 1시간마다
+
+let wakeWanted = false;       // 사용자가 켜 두고 싶은지(localStorage에 기억)
+let wakeSentinel = null;      // 지금 잡고 있는 화면 잠금
+let liveDate = todayISO();    // 화면이 마지막으로 그린 '오늘'
+let lastWeatherAt = 0;
+let lastVersionAt = 0;
+let assetTag = '';            // 지금 화면의 app.js 표식(ETag/Last-Modified)
+let newerBuild = false;
+let versionBusy = false;
+
+/* --- 화면 켜짐 (Screen Wake Lock) --- */
+function wakeSupported() {
+  return !!(navigator.wakeLock && typeof navigator.wakeLock.request === 'function');
+}
+function readWakePref() {
+  try {
+    const v = localStorage.getItem(WAKE_PREF_KEY);
+    return v === '1' ? true : v === '0' ? false : null;
+  } catch (e) { return null; }
+}
+function writeWakePref(on) {
+  try { localStorage.setItem(WAKE_PREF_KEY, on ? '1' : '0'); } catch (e) { }
+}
+function wakeHeld() { return !!(wakeSentinel && !wakeSentinel.released); }
+
+function paintWake() {
+  const btn = $('#btnWake');
+  if (!btn) return;
+  const sup = wakeSupported();
+  const on = wakeWanted && sup;
+  btn.classList.toggle('is-on', on);
+  btn.classList.toggle('is-wait', on && !wakeHeld());
+  btn.classList.toggle('is-unsupported', !sup);
+  btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  const st = $('#wakeState');
+  if (st) st.textContent = !sup ? '—' : (on ? 'ON' : 'OFF');
+  btn.title = !sup
+    ? '이 브라우저에서는 화면 켜짐을 지원하지 않아요'
+    : on
+      ? (wakeHeld() ? '화면이 꺼지지 않게 유지하고 있어요 · 눌러서 끄기' : '화면이 보일 때 다시 켤게요 · 눌러서 끄기')
+      : '눌러서 화면이 꺼지지 않게 유지해요';
+  btn.setAttribute('aria-label', on ? '화면 켜짐 유지 켜짐 · 눌러서 끄기' : '화면 켜짐 유지 꺼짐 · 눌러서 켜기');
+}
+
+async function requestWake(interactive) {
+  if (!wakeWanted || wakeHeld()) return wakeHeld();
+  if (!wakeSupported()) {
+    if (interactive) toast('이 브라우저는 화면 켜짐을 지원하지 않아요');
+    paintWake();
+    return false;
+  }
+  if (document.visibilityState !== 'visible') return false;
+  try {
+    const sentinel = await navigator.wakeLock.request('screen');
+    wakeSentinel = sentinel;
+    sentinel.addEventListener('release', () => {
+      if (wakeSentinel === sentinel) wakeSentinel = null;
+      paintWake();
+    });
+    paintWake();
+    return true;
+  } catch (e) {
+    // 배터리 절약·사용자 조작 요구 등으로 거절되어도 화면에 에러를 남기지 않습니다.
+    wakeSentinel = null;
+    paintWake();
+    if (interactive) toast('화면 켜짐을 켜지 못했어요 · 배터리 절약 설정을 확인해 주세요');
+    return false;
+  }
+}
+
+async function setWake(on, quiet) {
+  if (on && !wakeSupported()) {
+    wakeWanted = false;
+    paintWake();
+    if (!quiet) toast('이 브라우저는 화면 켜짐을 지원하지 않아요');
+    return;
+  }
+  wakeWanted = !!on;
+  writeWakePref(wakeWanted);
+  const btn = $('#btnWake');
+  if (btn) btn.classList.remove('is-hint');
+  if (!wakeWanted) {
+    const s = wakeSentinel;
+    wakeSentinel = null;
+    if (s) { try { await s.release(); } catch (e) { } }
+    paintWake();
+    if (!quiet) toast('화면 켜짐 유지를 껐어요');
+    return;
+  }
+  paintWake();
+  const held = await requestWake(true);
+  if (held && !quiet) toast('화면이 꺼지지 않게 유지할게요');
+}
+
+/* --- 자정에 새로고침 없이 새 날로 --- */
+function refreshForNewDay(prev) {
+  const today = todayISO();
+  const prevD = parseISO(prev);
+  // 어제의 '오늘'을 보고 있었다면 새 날의 오늘로 따라갑니다. 다른 날을 골라 둔 화면은 그대로 둡니다.
+  if (selectedDate === prev) selectedDate = today;
+  if (viewYear === prevD.getFullYear() && viewMonth === prevD.getMonth()) {
+    const n = new Date();
+    viewYear = n.getFullYear();
+    viewMonth = n.getMonth();
+  }
+  if (routineDate === prev) routineDate = today;
+  liveDate = today;
+  renderAll();
+  lastWeatherAt = Date.now();
+  loadWeather();
+  toast(`새 날이 시작됐어요 · ${mdLabel(today)}`);
+}
+
+function tickLive() {
+  if (!appStarted) return;
+  tickClock();
+  const today = todayISO();
+  if (today !== liveDate) { const prev = liveDate; liveDate = today; refreshForNewDay(prev); return; }
+  renderTodaySchedule();
+  renderTodayMeal();
+  if (wakeWanted && !wakeHeld()) requestWake(false);
+  if (Date.now() - lastWeatherAt >= WEATHER_REFRESH_MS) {
+    lastWeatherAt = Date.now();
+    loadWeather();
+  }
+  checkVersion(false);
+}
+
+/* 태블릿이 잠에서 깨어나 화면으로 돌아왔을 때 */
+function onDashboardVisible() {
+  if (!appStarted) return;
+  const today = todayISO();
+  if (today !== liveDate) {
+    const prev = liveDate;
+    liveDate = today;
+    refreshForNewDay(prev);
+  } else {
     renderHeader();
+    renderCalendar();
     renderTodaySchedule();
     renderTodayMeal();
     renderMealWeek();
-  });
+  }
+  if (Date.now() - lastWeatherAt >= 10 * 60 * 1000) {
+    lastWeatherAt = Date.now();
+    loadWeather();
+  }
+  if (wakeWanted && !wakeHeld()) requestWake(false);
+  checkVersion(false);
+}
+
+/* --- 새 배포 감지: 새로고침 대신 조용한 배지 --- */
+async function checkVersion(force) {
+  if (versionBusy) return;
+  const now = Date.now();
+  if (!force && now - lastVersionAt < VERSION_CHECK_MS) return;
+  lastVersionAt = now;
+  versionBusy = true;
+  try {
+    const res = await fetch('app.js', { method: 'HEAD', cache: 'no-store' });
+    if (!res.ok) return;
+    const tag = res.headers.get('etag') || res.headers.get('last-modified') || '';
+    if (!tag) return;
+    if (!assetTag) { assetTag = tag; return; }
+    if (tag !== assetTag) showUpdatePill();
+  } catch (e) {
+    // 오프라인 등에서는 조용히 넘어갑니다.
+  } finally {
+    versionBusy = false;
+  }
+}
+
+function showUpdatePill() {
+  if (newerBuild) return;
+  newerBuild = true;
+  const btn = $('#btnUpdate');
+  if (!btn) return;
+  btn.hidden = false;
+  btn.title = '새 버전이 올라왔어요';
+  btn.onclick = () => confirmModal(
+    '새 버전이 올라왔어요',
+    '새 화면으로 바꾸려면 새로고침이 필요해요. 새로고침하면 가족 PIN을 다시 한 번 입력해야 하니, 태블릿 앞에 있을 때 눌러 주세요.',
+    '새로고침', () => location.reload()
+  );
+}
+
+/* --- 시작 --- */
+function initKiosk() {
+  liveDate = todayISO();
+  document.documentElement.dataset.build = BUILD;
+  const pref = readWakePref();
+  wakeWanted = pref === true && wakeSupported();
+
+  const btn = $('#btnWake');
+  if (btn) {
+    if (pref === null && wakeSupported()) btn.classList.add('is-hint');
+    btn.addEventListener('click', () => { setWake(!wakeWanted); });
+  }
+  paintWake();
+  if (wakeWanted) requestWake(false);
+
+  // 브라우저가 사용자 조작을 요구하는 기기(태블릿·iOS)에서도 첫 터치·키 입력으로 켜지도록
+  const retry = () => { if (wakeWanted && !wakeHeld()) requestWake(false); };
+  ['pointerdown', 'touchstart', 'keydown'].forEach(ev =>
+    window.addEventListener(ev, retry, { passive: true, capture: true }));
+
+  checkVersion(true);
 }
 
 /* ---------------- 암호화 볼트 · 가족 잠금 화면 · 시작 ---------------- */
@@ -2277,9 +2488,11 @@ function startApp() {
   appStarted = true;
   bindEvents();
   renderAll();
+  lastWeatherAt = Date.now();
   loadWeather();
-  // 시간표·급식 카드는 시간이 흘러도 계속 맞게
-  setInterval(() => { renderTodaySchedule(); renderTodayMeal(); tickClock(); }, 60000);
+  initKiosk();
+  // 시간표·급식의 지금/다음, 자정 날짜 전환, 날씨, 새 배포를 1분마다 조용히 맞춥니다.
+  setInterval(tickLive, 60000);
 }
 
 /* 볼트가 없는 판(예전 방식)에서만 쓰는 잠금 해제 */

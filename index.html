@@ -11,6 +11,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="우리집">
 <link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -41,6 +45,12 @@
     </nav>
 
     <div class="topbar-right">
+      <button class="wake-btn" id="btnWake" type="button" aria-pressed="false" title="눌러서 화면이 꺼지지 않게 유지해요">
+        <span class="wake-ico" aria-hidden="true">☀️</span>
+        <span class="wake-label">화면 켜짐</span>
+        <span class="wake-state" id="wakeState">OFF</span>
+      </button>
+      <button class="update-pill" id="btnUpdate" type="button" hidden>⬆ 새 버전</button>
       <div class="clock"><span id="clock">--:--</span><i class="live-dot" aria-hidden="true"></i></div>
       <button class="icon-btn" id="btnSettings" type="button" title="설정 · 백업" aria-label="설정과 백업 열기">⚙️</button>
     </div>
