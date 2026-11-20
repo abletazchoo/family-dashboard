@@ -115,11 +115,19 @@ function hourLabel(h) {
 }
 
 /* ---------------- 상태(데이터) ---------------- */
+/* 캐릭터 그림을 바꿀 때는 AVATAR_VER만 올리면 브라우저 캐시에 남은
+   예전 그림 대신 새 그림을 바로 불러옵니다. */
+const AVATAR_VER = '20261120';
+function avatarSrc(src) {
+  if (typeof src !== 'string' || !src.startsWith('assets/')) return src;
+  return src.split('?')[0] + '?v=' + AVATAR_VER;
+}
+
 const defaultMembers = () => ([
-  { id: 'mom', name: '엄마', img: 'assets/mom.png', status: '집에 있어요', color: 'pink' },
-  { id: 'dad', name: '아빠', img: 'assets/dad.png', status: '일하는 중!', color: 'blue' },
-  { id: 'child1', name: '첫째', img: 'assets/child1.png', status: '학교/학원에 있어요', color: 'yellow' },
-  { id: 'child2', name: '둘째', img: 'assets/child2.png', status: '집에 있어요', color: 'peach' }
+  { id: 'mom', name: '엄마', img: avatarSrc('assets/mom.png'), status: '집에 있어요', color: 'pink' },
+  { id: 'dad', name: '아빠', img: avatarSrc('assets/dad.png'), status: '일하는 중!', color: 'blue' },
+  { id: 'child1', name: '첫째', img: avatarSrc('assets/child1.png'), status: '학교/학원에 있어요', color: 'yellow' },
+  { id: 'child2', name: '둘째', img: avatarSrc('assets/child2.png'), status: '집에 있어요', color: 'peach' }
 ]);
 
 const defaultRoutines = () => ({
@@ -222,7 +230,7 @@ function mergeState(saved) {
     return {
       id: m.id || b.id,
       name: (typeof m.name === 'string' && m.name.trim()) ? m.name : b.name,
-      img: m.img || b.img,
+      img: avatarSrc(m.img) || b.img,
       status: m.status || b.status,
       color: m.color || b.color
     };
