@@ -365,7 +365,7 @@ let syncPin = '';          // 이 탭이 열려 있는 동안만 두는 PIN(다�
 let syncSkip = 0;          // 연속 실패 시 잠깐 쉬기
 let syncFails = 0;
 let lastTypingAt = 0;      // 마지막으로 글자를 입력한 시각(입력 중에는 화면을 갈아엎지 않기 위해)
-let localUpdatedAt = 0;    // 이 기기 기록의 최신 시각(ms)
+let localEditAt = 0;       // 이 기기에서 "사람이 고친" 최신 시각(ms) · 날씨 캐시 같은 자동 저장은 올리지 않음
 
 async function deriveKey(pin, saltB64, iterations) {
   const material = await crypto.subtle.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveKey']);
@@ -391,17 +391,19 @@ function readJSON(key) {
 }
 
 /* 이 기기 저장: 예전 150ms 디바운스를 없애고 바로 암호문을 씁니다.
-   바꾸자마자 창을 닫아도 기록이 빠지지 않도록 하기 위해서예요. */
-function queueEncryptedSave(stamp) {
+   바꾸자마자 창을 닫아도 기록이 빠지지 않도록 하기 위해서예요.
+   stamp = 저장한 시각, editAt = 사람이 고친 시각(기기끼리 견줄 때 쓰는 값). */
+function queueEncryptedSave(stamp, editAt) {
   const snapshot = state;
-  const at = Number(stamp) || Math.max(Date.now(), localUpdatedAt + 1);
+  const at = Number(stamp) || Date.now();
+  const ed = Number(editAt) || localEditAt;
   saveChain = saveChain.then(async () => {
     if (!stateKey) return; // 그사이 잠금을 해제했으면 암호문을 다시 썼지 않아요
     try {
       const env = await encryptJSON(stateKey, snapshot);
       env.savedAt = at;
+      env.editedAt = ed;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(env));
-      if (at > localUpdatedAt) localUpdatedAt = at;
     } catch (e) {
       if (!saveFailWarned) { saveFailWarned = true; toast('암호화 저장에 문제가 생겼어요'); }
     }
@@ -409,17 +411,21 @@ function queueEncryptedSave(stamp) {
   return saveChain;
 }
 
-function save() {
+/* quiet: 날씨 캐시처럼 저절로 바뀌는 값. 기기에만 저장하고 클라우드에는 올리지 않으며,
+   '사람이 고친 시각'도 올리지 않아 다른 기기의 최신 기록을 덮어쓰지 않습니다. */
+function save(opts) {
+  const quiet = !!(opts && opts.quiet);
   try {
+    if (!quiet) localEditAt = Math.max(Date.now(), localEditAt + 1);
     if (stateKey) {
       clearTimeout(encSaveTimer);
       encSaveTimer = null;
-      queueEncryptedSave();
-      scheduleSyncPush();
+      queueEncryptedSave(Date.now(), localEditAt);
+      if (!quiet) scheduleSyncPush();
       return;
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    scheduleSyncPush();
+    if (!quiet) scheduleSyncPush();
   } catch (e) {
     if (!saveFailWarned) { saveFailWarned = true; toast('저장 공간이 부족해 기록을 저장하지 못했어요'); }
   }
@@ -502,12 +508,21 @@ async function syncPushNow() {
   syncBusy = true;
   paintSync('busy');
   try {
-    const at = Math.max(Date.now(), localUpdatedAt + 1);
+    const at = localEditAt || Date.now();
     const enc = await encryptCloudPayload();
     if (!enc) throw new Error('no-key');
-    await syncPut(at, enc);
-    localUpdatedAt = at;
-    queueEncryptedSave(at);   // 이 기기 암호문에도 같은 시각을 남겨 새로고침 후 비교가 맞게
+    const res = await syncPut(at, enc);
+    let echo = null;
+    try { echo = await res.json(); } catch (e) { echo = null; }
+    if (echo && echo.ok && Number(echo.updatedAt) > at) {
+      // 서버에 다른 기기의 더 새 기록이 있어 제가 올린 것이 받아들여지지 않았어요.
+      // 다음 차례에 그 기록을 따라갑니다.
+      syncDirty = false;
+      paintSync('wait');
+      return;
+    }
+    localEditAt = Math.max(localEditAt, at);
+    queueEncryptedSave(Date.now(), localEditAt);  // 이 기기 암호문에도 같은 시각을 남겨 새로고침 후 비교가 맞게
     syncDirty = false;
     syncFails = 0;
     paintSync('ok');
@@ -533,8 +548,8 @@ async function applyRemoteState(remote) {
   const data = await decryptCloudPayload(remote.enc, syncPin, stateKey);
   if (!data) return false;
   state = mergeState(data);
-  localUpdatedAt = Math.max(localUpdatedAt, Number(remote.updatedAt) || 0);
-  queueEncryptedSave(localUpdatedAt);
+  localEditAt = Math.max(localEditAt, Number(remote.updatedAt) || 0);
+  queueEncryptedSave(Date.now(), localEditAt);
   renderAll();
   return true;
 }
@@ -548,7 +563,7 @@ async function syncPull(force) {
     const remote = await syncGet();
     syncFails = 0;
     const remoteAt = (remote && remote.ok && remote.enc) ? Number(remote.updatedAt) || 0 : 0;
-    if (remoteAt > localUpdatedAt) {
+    if (remoteAt > localEditAt) {
       if (syncDirty) {                 // 아직 못 올린 내 변경이 먼저
         syncBusy = false;
         await syncPushNow();
@@ -596,7 +611,7 @@ function startSync() {
 function flushSave() {
   if (!stateKey) return;
   clearTimeout(encSaveTimer);
-  queueEncryptedSave();
+  queueEncryptedSave(Date.now(), localEditAt);
   if (syncOn && syncDirty) syncPushNow();
 }
 
@@ -1013,7 +1028,7 @@ async function loadWeather() {
     try { aq = await fetchJSON(aqUrl, 7000); } catch (e) { aq = null; }
     const w = normalizeWeather(fc, aq, loc);
     state.weatherCache = w;
-    save();
+    save({ quiet: true });
     renderWeather(w, false);
   } catch (e) {
     console.warn('[weather] 불러오기 실패:', e && e.message ? e.message : e);
@@ -2885,7 +2900,7 @@ function bindEvents() {
 
 /* 지금 화면의 배포 표식입니다. app.js를 고쳐 올릴 때 이 값을 함께 올려 두면
    켜 둔 태블릿이 새 배포를 알아채고 조용히 알려 줍니다. */
-const BUILD = '2026-11-20-5';
+const BUILD = '2026-11-20-6';
 const WAKE_PREF_KEY = 'urijip-wake-v1';
 const WEATHER_REFRESH_MS = 30 * 60 * 1000;   // 날씨·미세먼지 30분마다
 const VERSION_CHECK_MS = 60 * 60 * 1000;     // 새 배포 확인 1시간마다
@@ -3202,7 +3217,7 @@ async function unlockApp(pin, onFail) {
   } else if (payload && typeof payload === 'object') {
     local = payload;
   }
-  if (local) localAt = Number(payload && payload.savedAt) || 0;
+  if (local) localAt = Number(payload && (payload.editedAt || payload.savedAt)) || 0;
 
   // 다른 기기(폰·태블릿)가 올려 둔 최신 암호문
   let remote = null;
@@ -3212,13 +3227,13 @@ async function unlockApp(pin, onFail) {
 
   if (cloudState) {
     state = mergeState(cloudState);
-    localUpdatedAt = remoteAt;
+    localEditAt = remoteAt;
   } else if (local) {
     state = mergeState(local);
-    localUpdatedAt = localAt;
+    localEditAt = localAt;
   } else {
     state = createFirstState();
-    localUpdatedAt = 0;
+    localEditAt = 0;
   }
   // 볼트에 들어 있는 아이 이름으로 기본 이름(첫째/둘째)을 채웁니다. 직접 고친 이름은 그대로 둡니다.
   if (SD && SD.timetable && SD.timetable.children) {
@@ -3247,10 +3262,10 @@ async function unlockApp(pin, onFail) {
 
   if (cloudState) {
     // 클라우드에서 받은 상태를 이 기기 열쇠로 다시 저장해 둡니다.
-    queueEncryptedSave(localUpdatedAt);
+    queueEncryptedSave(Date.now(), localEditAt);
   } else {
     // 이 기기 기록이 더 새것이거나 클라우드가 비어 있으면 지금 상태를 올려 둡니다.
-    queueEncryptedSave();
+    queueEncryptedSave(Date.now(), localEditAt);
     syncDirty = true;
     syncPushNow();
   }
