@@ -42,6 +42,19 @@ function tokenOk_(t) {
   return typeof t === 'string' && t === APP_TOKEN;
 }
 
+/* 저장된 암호문을 통째로 지웁니다. (초기화가 필요할 때 편집기에서 이 함수를 한 번 실행)
+   가족 기록 자체는 각 기기와 브라우저 백업에 남아 있습니다. */
+function resetState() {
+  var props = PropertiesService.getScriptProperties();
+  var prev = 0;
+  try { prev = Number(JSON.parse(props.getProperty(PROP_HEAD) || '{}').chunks) || 0; } catch (err) { prev = 0; }
+  for (var i = 0; i < prev; i++) {
+    try { props.deleteProperty(PROP_CHUNK + i); } catch (err) { }
+  }
+  props.deleteProperty(PROP_HEAD);
+  return 'cleared';
+}
+
 function out_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
