@@ -364,6 +364,7 @@ let syncPushTimer = null;  // 변경 후 올리기까지의 짧은 기다림
 let syncPin = '';          // 이 탭이 열려 있는 동안만 두는 PIN(다른 기기 암호문을 풀 때)
 let syncSkip = 0;          // 연속 실패 시 잠깐 쉬기
 let syncFails = 0;
+let lastTypingAt = 0;      // 마지막으로 글자를 입력한 시각(입력 중에는 화면을 갈아엎지 않기 위해)
 let localUpdatedAt = 0;    // 이 기기 기록의 최신 시각(ms)
 
 async function deriveKey(pin, saltB64, iterations) {
@@ -518,11 +519,13 @@ async function syncPushNow() {
   }
 }
 
-/* 입력 중이거나 창이 떠 있으면 방해하지 않고 다음 차례로 미룹니다. */
+/* 입력 중이거나 창이 떠 있으면 방해하지 않고 다음 차례로 미룹니다.
+   입력창에 초점이 남아 있어도 4초 넘게 자리를 비우면(태블릿처럼 계속 열어 두는 화면) 새 기록을 받아들입니다. */
 function canTakeRemote() {
-  const el = document.activeElement;
-  if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return false;
   if (!modalRoot.hidden) return false;
+  const el = document.activeElement;
+  const typing = !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+  if (typing && Date.now() - lastTypingAt < 4000) return false;
   return true;
 }
 
@@ -578,6 +581,7 @@ function startSync() {
   syncTimer = setInterval(function () { syncPull(false); }, SYNC_POLL_MS);
   const pill = document.getElementById('syncPill');
   if (pill) pill.onclick = function () { toast('☁️ 지금 맞추는 중…'); syncPull(true); };
+  document.addEventListener('input', function () { lastTypingAt = Date.now(); }, true);
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'visible') syncPull(true);
   });
@@ -2881,7 +2885,7 @@ function bindEvents() {
 
 /* 지금 화면의 배포 표식입니다. app.js를 고쳐 올릴 때 이 값을 함께 올려 두면
    켜 둔 태블릿이 새 배포를 알아채고 조용히 알려 줍니다. */
-const BUILD = '2026-11-20-4';
+const BUILD = '2026-11-20-5';
 const WAKE_PREF_KEY = 'urijip-wake-v1';
 const WEATHER_REFRESH_MS = 30 * 60 * 1000;   // 날씨·미세먼지 30분마다
 const VERSION_CHECK_MS = 60 * 60 * 1000;     // 새 배포 확인 1시간마다
