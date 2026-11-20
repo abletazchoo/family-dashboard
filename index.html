@@ -80,6 +80,40 @@
         </section>
       </div>
 
+      <!-- 🐶 우리집 강아지 키우기 -->
+      <section class="card card-puppy" id="cardPuppy" aria-label="우리집 강아지 키우기">
+        <div class="puppy-inner">
+          <button class="puppy-stage" id="puppyStage" type="button" aria-label="강아지 쓰다듬기">
+            <img class="puppy-img" id="puppyImg" src="assets/puppy-1.png" alt="우리집 강아지" draggable="false">
+            <span class="puppy-hall" id="puppyHall" hidden>🏆 0</span>
+            <span class="puppy-sparkles" id="puppySparkles" aria-hidden="true"></span>
+          </button>
+          <div class="puppy-info">
+            <div class="puppy-head">
+              <h2 class="card-title"><span class="ico">🐶</span> 우리집 강아지</h2>
+              <span class="puppy-lv" id="puppyLv">Lv.1 아기</span>
+            </div>
+            <div class="puppy-name-row">
+              <span class="puppy-name" id="puppyName">몽실이</span>
+              <button class="mini-btn" id="btnPuppyName" type="button">이름 바꾸기</button>
+            </div>
+            <div class="puppy-xp">
+              <div class="puppy-bar"><i id="puppyXpFill"></i></div>
+              <div class="puppy-xp-meta">
+                <span id="puppyXpText">0 XP</span>
+                <span id="puppyNext">다음 단계까지 할 일 3개!</span>
+              </div>
+            </div>
+            <p class="puppy-say" id="puppySay">할 일을 하나씩 끝내면 내가 쑥쑥 자라요!</p>
+            <div class="puppy-foot">
+              <span class="puppy-badge" id="puppyBadge" hidden>👑 슈퍼 왕관 강아지 달성!</span>
+              <button class="soft-btn pink" id="btnPuppyNew" type="button" hidden>새 강아지 키우기</button>
+            </div>
+          </div>
+          <div class="puppy-track" id="puppyTrack" aria-hidden="true"></div>
+        </div>
+      </section>
+
       <div class="dash">
 
         <div class="col col-left">
