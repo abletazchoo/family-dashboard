@@ -69,18 +69,25 @@ const LEVELS = [
   { min: 26, name: '별', emoji: '⭐' }
 ];
 
-/* ---------------- 🐶 우리집 강아지 키우기 ---------------- */
-/* 할 일·하루 루틴을 하나 끝낼 때마다 10 XP. 단계마다 그림이 자랍니다. */
-const PUPPY_XP_PER_ITEM = 10;
-const PUPPY_MAX_XP = 120;
-const PUPPY_STAGES = [
-  { level: 1, min: 0, img: 'assets/puppy-1.png', label: '아기', title: '아기 강아지', say: '할 일을 하나씩 끝내면 내가 쑥쑥 자라요!' },
-  { level: 2, min: 30, img: 'assets/puppy-2.png', label: '꼬마', title: '꼬마 강아지', say: '우와, 벌써 이만큼 컸어요! 같이 한 번 더 해 볼까요?' },
-  { level: 3, min: 70, img: 'assets/puppy-3.png', label: '씩씩한', title: '씩씩한 강아지', say: '나는 오늘도 씩씩해요! 멍멍!' },
-  { level: 4, min: 120, img: 'assets/puppy-4.png', label: '슈퍼 왕관', title: '슈퍼 왕관 강아지', say: '반짝반짝 슈퍼 스타! 우리 가족이 최고예요!' }
+/* ---------------- 🐶 우리집 강아지 키우기 (유온·지온 각자 한 마리) ---------------- */
+/* 루틴·할 일을 하나 끝낼 때마다 그 아이의 강아지가 자랍니다.
+   1단계 0 XP · 2단계 30 · 3단계 70 · 4단계(왕관) 120 */
+const PET_MAX_XP = 120;
+const PET_ITEM_XP = 10;      // 루틴·그 아이 할 일 하나 끝낼 때
+const PET_COMMON_XP = 5;     // 우리집 공통 할 일 하나 끝낼 때(두 강아지 모두)
+const PET_STAGE_META = [
+  { level: 1, min: 0, label: '아기', title: '아기 강아지', say: '할 일을 하나씩 끝내면 내가 쑥쑥 자라요!' },
+  { level: 2, min: 30, label: '꼬마', title: '꼬마 강아지', say: '우와, 벌써 이만큼 컸어요! 같이 한 번 더 해 볼까요?' },
+  { level: 3, min: 70, label: '씩씩한', title: '씩씩한 강아지', say: '나는 오늘도 씩씩해요! 멍멍!' },
+  { level: 4, min: 120, label: '슈퍼 왕관', title: '슈퍼 왕관 강아지', say: '반짝반짝 슈퍼 스타! 우리 가족이 최고예요!' }
 ];
-const PUPPY_DEFAULT_NAME = '몽실이';
-const PUPPY_LINES = [
+/* 첫째(유온)는 크림·카라멜 말티푸, 둘째(지온)는 하얀 비숑. 단계마다 그림이 자라요. */
+const PET_IMAGES = {
+  child1: ['assets/puppy-1.png', 'assets/puppy-2.png', 'assets/puppy-3.png', 'assets/puppy-4.png'],
+  child2: ['assets/puppy2-1.png', 'assets/puppy2-2.png', 'assets/puppy2-3.png', 'assets/puppy2-4.png']
+};
+const PET_DEFAULT_NAMES = { child1: '몽실이', child2: '구름이' };
+const PET_LINES = [
   ['멍멍! 오늘도 잘하고 있어요 🐾', '쓰다듬어 줘서 기분이 좋아요 💕', '같이 힘내요! 내가 응원할게요 ✨', '꼬리 살랑살랑~ 오늘 멋져요!', '한 숨 돌리고 물 한 잔 마셔요 🥛'],
   ['멍! 간식보다 칭찬이 더 좋아요 🍪', '우리 같이 공놀이 할까요? 🎾', '할 일 하나 끝내고 나랑 놀아요!', '오늘 한 일이 자랑스러워요 🐶', '냄새가 좋아요, 힘내요!'],
   ['씩씩하게 오늘도 화이팅! 💪', '멍멍! 나는 너를 믿어요 ✨', '한 걸음 더! 우리 같이 가요 🐾', '스카프 어때요? 멋지죠? 😎', '무엇이든 해낼 수 있어요!'],
@@ -176,30 +183,66 @@ const defaultQuests = () => ([
   { id: uid(), child: 'child2', emoji: '🎨', title: '그림 3장 그리기', goal: 3, progress: 0, reward: '미술 시간 늘리기', done: false }
 ]);
 
-function defaultPuppy() {
-  return { name: PUPPY_DEFAULT_NAME, xp: 0, hall: 0, awarded: {}, day: todayISO() };
+function defaultPet(childId) {
+  return { name: PET_DEFAULT_NAMES[childId] || '강아지', xp: 0, hall: 0, awarded: {}, day: todayISO() };
 }
 
-function mergePuppy(p) {
-  const d = defaultPuppy();
+function defaultPets() {
+  return { child1: defaultPet('child1'), child2: defaultPet('child2') };
+}
+
+function mergePet(p, childId) {
+  const d = defaultPet(childId);
   if (!p || typeof p !== 'object') return d;
   const out = Object.assign({}, d);
   if (typeof p.name === 'string' && p.name.trim()) out.name = p.name.trim().slice(0, 12);
-  if (Number.isFinite(p.xp)) out.xp = clamp(Math.round(p.xp), 0, PUPPY_MAX_XP);
+  if (Number.isFinite(p.xp)) out.xp = clamp(Math.round(p.xp), 0, PET_MAX_XP);
   if (Number.isFinite(p.hall)) out.hall = Math.max(0, Math.round(p.hall));
   if (p.awarded && typeof p.awarded === 'object' && !Array.isArray(p.awarded)) {
-    const keys = Object.keys(p.awarded).slice(-200);
+    const keys = Object.keys(p.awarded).slice(-300);
     out.awarded = {};
-    keys.forEach(k => { if (p.awarded[k]) out.awarded[k] = 1; });
+    keys.forEach(k => { if (p.awarded[k]) out.awarded[k] = p.awarded[k]; });
   }
   if (typeof p.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(p.day)) out.day = p.day;
+  return out;
+}
+
+/* 예전에는 강아지가 한 마리(state.puppy)였어요. 그 기록은 첫째 강아지가 이어받고
+   둘째 강아지는 새로 태어납니다. 이미 체크한 할 일이 둘째에게 또 들어가지 않도록
+   할 일 인정 표시는 둘째에게도 옮겨 둡니다. */
+function mergePets(saved) {
+  const src = saved || {};
+  const out = defaultPets();
+  if (src.pets && typeof src.pets === 'object') {
+    out.child1 = mergePet(src.pets.child1, 'child1');
+    out.child2 = mergePet(src.pets.child2, 'child2');
+    return out;
+  }
+  if (src.puppy && typeof src.puppy === 'object') {
+    const old = mergePet(src.puppy, 'child1');
+    const migrated = {};
+    Object.keys(old.awarded).forEach(k => {
+      // 'r:날짜:아이:항목' → 'r:날짜:항목' (그 아이의 강아지 몫으로)
+      const m = /^r:(\d{4}-\d{2}-\d{2}):(child1|child2):(.+)$/.exec(k);
+      if (m) {
+        if (m[2] === 'child1') migrated['r:' + m[1] + ':' + m[3]] = old.awarded[k];
+        return;
+      }
+      migrated[k] = old.awarded[k];
+    });
+    old.awarded = migrated;
+    out.child1 = old;
+    Object.keys(migrated).forEach(k => {
+      if (k.indexOf('todo:') === 0) out.child2.awarded[k] = migrated[k];
+    });
+  }
   return out;
 }
 
 function blankState() {
   return {
     version: 1,
-    puppy: defaultPuppy(),
+    pets: defaultPets(),
     houseName: '보통날의 우리집',
     location: null,
     members: defaultMembers(),
@@ -281,7 +324,8 @@ function mergeState(saved) {
   ['child1', 'child2'].forEach(k => { if (!Array.isArray(s.routines[k])) s.routines[k] = base.routines[k]; });
   s.routineLog = (saved && typeof saved.routineLog === 'object' && saved.routineLog) || {};
   s.stars = Object.assign({ child1: 0, child2: 0 }, saved && saved.stars);
-  s.puppy = mergePuppy(saved && saved.puppy);
+  s.pets = mergePets(saved);
+  delete s.puppy;
   s.scheduleOverrides = (saved && typeof saved.scheduleOverrides === 'object' && saved.scheduleOverrides) || {};
   ['child1', 'child2'].forEach(k => {
     if (!s.scheduleOverrides[k] || typeof s.scheduleOverrides[k] !== 'object') s.scheduleOverrides[k] = {};
@@ -365,6 +409,8 @@ let selectedDate = todayISO();
 let viewYear = new Date().getFullYear();
 let viewMonth = new Date().getMonth();
 let todoList = 'todo';
+/* 할 일 대상 칩: '' = 우리집(공통), 'child1' · 'child2' = 그 아이 */
+let todoTargetSel = '';
 let routineDate = todayISO();
 
 /* ---------------- 공통 UI ---------------- */
@@ -864,6 +910,7 @@ function listOf(kind) { return kind === 'shopping' ? state.shopping : state.todo
 
 function renderTodos() {
   const todos = state.todos, shop = state.shopping;
+  renderTodoTargetChips();
   $('#todoCount').textContent = todos.filter(t => !t.done).length;
   $('#shopCount').textContent = shop.filter(t => !t.done).length;
 
@@ -896,7 +943,12 @@ function renderTodos() {
       const overdue = !t.done && t.due < today;
       meta.push(`<span class="${overdue ? 'over' : ''}">~${shortDate(t.due)}${overdue ? ' 지남' : ''}</span>`);
     }
-    if (t.who && memberById(t.who)) meta.push(`<span class="who">${esc(memberName(t.who))}</span>`);
+    if (t.who) {
+      const mom = memberById(t.who);
+      if (mom) meta.push(`<span class="who${isChild(t.who) ? ' who-pet' : ''}">${isChild(t.who) ? '🐶 ' : ''}${esc(mom.name)}</span>`);
+    } else if (todoList === 'todo') {
+      meta.push('<span class="who who-home">🏠 우리집</span>');
+    }
     return `<li class="check-item ${t.done ? 'is-done' : ''}" data-id="${t.id}">
       <button type="button" class="check" data-act="toggle" aria-pressed="${t.done ? 'true' : 'false'}" aria-label="완료">✓</button>
       <div class="ci-main">
@@ -908,11 +960,16 @@ function renderTodos() {
   }).join('');
 }
 
-function renderAssigneeOptions() {
-  const sel = $('#todoAssignee');
-  const prev = sel.value;
-  sel.innerHTML = `<option value="">누가</option>` + state.members.map(m => `<option value="${m.id}">${esc(m.name)}</option>`).join('');
-  if (prev) sel.value = prev;
+/* 할 일 대상 칩 (우리집 / 유온 / 지온) */
+function renderTodoTargetChips() {
+  const row = $('#todoTargetRow');
+  if (!row) return;
+  const kids = state.members.filter(m => isChild(m.id));
+  const on = todoTargetSel;
+  row.innerHTML = `<span class="target-label">누구</span>
+    <button type="button" class="target-chip ${on === '' ? 'is-active' : ''}" data-target="" aria-pressed="${on === ''}">🏠 우리집</button>
+    ${kids.map(m => `<button type="button" class="target-chip ${on === m.id ? 'is-active' : ''}" data-target="${m.id}" aria-pressed="${on === m.id}">${esc(m.name)}</button>`).join('')}
+    <span class="target-hint">${on === '' ? '둘 다 +5 XP' : esc(memberName(on)) + ' 강아지 +10 XP'}</span>`;
 }
 
 /* ---------------- 저녁 메뉴 ---------------- */
@@ -1034,7 +1091,7 @@ function openMemberModal(member) {
       const custom = form.elements.custom.value.trim();
       member.name = name;
       member.status = custom || picked || '집에 있어요';
-      save(); closeModal(); renderStatus(); renderTodos(); renderRoutine(); renderLetters(); toast('상태를 바꿨어요');
+      save(); closeModal(); renderStatus(); renderTodos(); renderPets(); renderRoutine(); renderLetters(); toast('상태를 바꿨어요');
     });
     form.querySelector('[data-act=cancel]').onclick = closeModal;
   });
@@ -1061,7 +1118,7 @@ function openMembersModal() {
         const v = form.elements['name' + i].value.trim();
         if (v) m.name = v;
       });
-      save(); closeModal(); renderStatus(); renderTodos(); renderRoutine(); renderQuests(); renderTimetable(); renderLetters();
+      save(); closeModal(); renderStatus(); renderTodos(); renderPets(); renderRoutine(); renderQuests(); renderTimetable(); renderLetters();
       toast('이름을 바꿨어요');
     });
     form.querySelector('[data-act=cancel]').onclick = closeModal;
@@ -1260,94 +1317,147 @@ function toggleRoutine(childId, itemId) {
   renderRoutine();
   renderWeekBoard();
   renderQuests();
-  renderPuppy();
+  renderPets();
 }
 
 /* =========================================================
-   🐶 우리집 강아지 키우기
-   · 오늘 할 일 / 하루 루틴을 체크할 때마다 +10 XP, 풀면 -10 XP
+   🐶 우리집 강아지 키우기 — 유온·지온 각자 한 마리
+   · 하루 루틴 체크 → 그 아이 강아지 +10 XP (풀면 -10)
+   · 대상이 그 아이인 할 일 체크 → 그 아이 강아지 +10 XP (풀면 -10)
+   · 우리집 공통 할 일 체크 → 두 강아지 모두 +5 XP (풀면 -5)
    · 같은 항목을 껐다 켰다 해도 XP가 불어나지 않도록
-     '어느 항목을 이미 인정했는지'를 state.puppy.awarded 에 적어 둡니다.
+     '어느 항목을 이미 인정했는지'를 각 강아지의 awarded 에 적어 둡니다.
    ========================================================= */
-let puppySaySticky = '';
+const petSaySticky = { child1: '', child2: '' };
 
-function puppy() { return state.puppy || (state.puppy = defaultPuppy()); }
+function petIds() {
+  const ids = state.members.filter(m => isChild(m.id)).map(m => m.id);
+  return ids.length ? ids : Object.keys(defaultPets());
+}
 
-function puppyStageOf(xp) {
-  let st = PUPPY_STAGES[0];
-  PUPPY_STAGES.forEach(s => { if (xp >= s.min) st = s; });
+function petOf(childId) {
+  if (!state.pets || typeof state.pets !== 'object') state.pets = defaultPets();
+  if (!state.pets[childId]) state.pets[childId] = defaultPet(childId);
+  return state.pets[childId];
+}
+
+function petStages(childId) {
+  const imgs = PET_IMAGES[childId] || PET_IMAGES.child1;
+  return PET_STAGE_META.map((m, i) => Object.assign({}, m, { img: imgs[i] }));
+}
+
+function petStageOf(xp) {
+  let st = PET_STAGE_META[0];
+  PET_STAGE_META.forEach(s => { if (xp >= s.min) st = s; });
   return st;
 }
-function puppyNextStage(st) {
-  return PUPPY_STAGES.find(s => s.min > st.min) || null;
+function petNextStage(st) {
+  return PET_STAGE_META.find(s => s.min > st.min) || null;
+}
+function petStageImg(childId, level) {
+  const imgs = PET_IMAGES[childId] || PET_IMAGES.child1;
+  return imgs[clamp(level, 1, imgs.length) - 1];
+}
+function petLabel(childId) {
+  const m = memberById(childId);
+  return m ? m.name : (childId === 'child2' ? '둘째' : '첫째');
 }
 
 /* 날이 바뀌면 지난날 루틴 체크로 받은 인정 표시는 정리합니다(오늘 다시 체크하면 새로 인정). */
-function puppySyncDay() {
-  const p = puppy();
+function petSyncDay(childId) {
+  const p = petOf(childId);
   const today = todayISO();
   if (p.day === today) return false;
   p.day = today;
   Object.keys(p.awarded).forEach(k => { if (k.indexOf('r:') === 0) delete p.awarded[k]; });
   return true;
 }
+function petSyncAllDays() {
+  let changed = false;
+  petIds().forEach(id => { if (petSyncDay(id)) changed = true; });
+  return changed;
+}
 
-function puppyAddXp(delta) {
-  const p = puppy();
+function petAddXp(childId, delta) {
+  const p = petOf(childId);
   if (!delta) return;
-  const before = puppyStageOf(p.xp);
-  let xp = clamp(p.xp + delta, 0, PUPPY_MAX_XP);
+  const top = PET_STAGE_META[PET_STAGE_META.length - 1];
+  const before = petStageOf(p.xp);
+  let xp = clamp(p.xp + delta, 0, PET_MAX_XP);
   // 왕관은 한 번 쓰면 유지: 4단계에 오른 뒤 체크를 풀어도 예전 단계로 돌아가지 않아요.
-  if (before.level === PUPPY_STAGES[PUPPY_STAGES.length - 1].level) xp = PUPPY_MAX_XP;
+  if (before.level === top.level) xp = PET_MAX_XP;
   p.xp = xp;
-  const after = puppyStageOf(p.xp);
-  renderPuppy();
-  if (after.level > before.level) puppyCelebrate(after);
+  const after = petStageOf(p.xp);
+  renderPets();
+  if (after.level > before.level) petCelebrate(childId, after);
 }
 
-/* key: 'todo:<id>' 또는 'r:<날짜>:<아이>:<항목>' — 같은 항목은 한 번만 인정 */
-function puppyAward(key, done) {
-  const p = puppy();
+/* key: 'todo:<id>' 또는 'r:<날짜>:<항목>' — 강아지마다 같은 항목은 한 번만 인정 */
+function petAward(childId, key, done, amount) {
+  const p = petOf(childId);
   if (!key) return;
-  const had = !!p.awarded[key];
-  if (done && !had) { p.awarded[key] = 1; puppyAddXp(PUPPY_XP_PER_ITEM); }
-  else if (!done && had) { delete p.awarded[key]; puppyAddXp(-PUPPY_XP_PER_ITEM); }
+  const xp = amount || PET_ITEM_XP;
+  const had = p.awarded[key];
+  if (done && !had) { p.awarded[key] = xp; petAddXp(childId, xp); }
+  else if (!done && had) {
+    const back = Number(had) > 1 ? Number(had) : xp;
+    delete p.awarded[key];
+    petAddXp(childId, -back);
+  }
 }
 
-function todoAwardKey(id) { return 'todo:' + id; }
-function routineAwardKey(date, childId, itemId) { return 'r:' + date + ':' + childId + ':' + itemId; }
+/* 할 일 대상: 'child1' · 'child2' = 그 아이 할 일, 나머지(빈 값·우리집·어른)는 우리집 공통 */
+function todoTarget(item) {
+  if (!item) return '';
+  const t = item.target || item.who || '';
+  return isChild(t) ? t : '';
+}
 
 function dogAwardTodo(item, done) {
   if (!item || !item.id) return;
-  puppyAward(todoAwardKey(item.id), done);
+  const key = 'todo:' + item.id;
+  const target = todoTarget(item);
+  if (target) { petAward(target, key, done, PET_ITEM_XP); return; }
+  petIds().forEach(id => petAward(id, key, done, PET_COMMON_XP));
 }
+
 /* 지난 날짜(어제 화면 등)의 루틴 체크는 오늘의 성장에 넣지 않습니다. */
 function dogAwardRoutine(date, childId, itemId, done) {
-  if (date !== todayISO()) return;
-  puppyAward(routineAwardKey(date, childId, itemId), done);
+  if (date !== todayISO() || !isChild(childId)) return;
+  petAward(childId, 'r:' + date + ':' + itemId, done, PET_ITEM_XP);
 }
 
-function puppyCelebrate(stage) {
-  const p = puppy();
-  toast(`🎉 ${p.name}가 Lv.${stage.level} ${stage.label}가 됐어요!`);
-  const stageEl = $('#puppyStage');
-  if (stageEl) {
-    stageEl.classList.remove('is-popping');
-    void stageEl.offsetWidth;
-    stageEl.classList.add('is-popping');
-    setTimeout(() => stageEl.classList.remove('is-popping'), 620);
+function petCardEl(childId) {
+  return document.querySelector('.pet-card[data-pet="' + childId + '"]');
+}
+function petSparkBox(childId) {
+  const card = petCardEl(childId);
+  return card ? card.querySelector('.pet-sparkles') : null;
+}
+
+function petCelebrate(childId, stage) {
+  const p = petOf(childId);
+  toast(`🎉 ${petLabel(childId)} 강아지 ${p.name}, Lv.${stage.level} ${stage.label} 달성!`);
+  const card = petCardEl(childId);
+  if (card) {
+    card.classList.remove('is-popping');
+    void card.offsetWidth;
+    card.classList.add('is-popping');
+    setTimeout(() => card.classList.remove('is-popping'), 620);
   }
-  puppyBurst(18);
-  if (stage.level === 4) setTimeout(() => puppyBurst(12), 420);
+  petBurst(childId, 18);
+  if (stage.level === PET_STAGE_META[PET_STAGE_META.length - 1].level) {
+    setTimeout(() => petBurst(childId, 12), 420);
+  }
 }
 
-function puppyBurst(n) {
-  const box = $('#puppySparkles');
+function petBurst(childId, n) {
+  const box = petSparkBox(childId);
   if (!box) return;
   const chars = ['✨', '⭐', '💛', '💖', '🌟'];
   for (let i = 0; i < n; i++) {
     const s = document.createElement('span');
-    s.className = 'puppy-spark';
+    s.className = 'pet-spark';
     s.textContent = chars[Math.floor(Math.random() * chars.length)];
     s.style.left = (8 + Math.random() * 80) + '%';
     s.style.top = (10 + Math.random() * 70) + '%';
@@ -1357,13 +1467,13 @@ function puppyBurst(n) {
   }
 }
 
-function puppyHearts(n) {
-  const box = $('#puppySparkles');
+function petHearts(childId, n) {
+  const box = petSparkBox(childId);
   if (!box) return;
   const chars = ['💗', '💕', '❤️', '💖', '🩷'];
   for (let i = 0; i < (n || 5); i++) {
     const s = document.createElement('span');
-    s.className = 'puppy-heart';
+    s.className = 'pet-heart';
     s.textContent = chars[Math.floor(Math.random() * chars.length)];
     s.style.left = (18 + Math.random() * 58) + '%';
     s.style.animationDelay = (Math.random() * 0.28).toFixed(2) + 's';
@@ -1372,96 +1482,106 @@ function puppyHearts(n) {
   }
 }
 
-function puppyPoke() {
-  const p = puppy();
-  const st = puppyStageOf(p.xp);
-  const pool = PUPPY_LINES[Math.min(st.level, PUPPY_LINES.length) - 1] || PUPPY_LINES[0];
+/* 강아지를 콕 누르면 하트가 뿅 터지고 응원 말풍선이 한마디 합니다. */
+function petPoke(childId) {
+  const p = petOf(childId);
+  const st = petStageOf(p.xp);
+  const pool = PET_LINES[Math.min(st.level, PET_LINES.length) - 1] || PET_LINES[0];
   let line = pool[Math.floor(Math.random() * pool.length)];
-  if (line === puppySaySticky && pool.length > 1) {
+  if (line === petSaySticky[childId] && pool.length > 1) {
     line = pool[(pool.indexOf(line) + 1) % pool.length];
   }
-  puppySaySticky = line;
-  const say = $('#puppySay');
+  petSaySticky[childId] = line;
+  const card = petCardEl(childId);
+  if (!card) return;
+  const say = card.querySelector('.pet-say');
   if (say) {
     say.textContent = line;
     say.classList.remove('is-new');
     void say.offsetWidth;
     say.classList.add('is-new');
   }
-  const stageEl = $('#puppyStage');
+  const stageEl = card.querySelector('.pet-stage');
   if (stageEl) {
     stageEl.classList.remove('is-hopping');
     void stageEl.offsetWidth;
     stageEl.classList.add('is-hopping');
     setTimeout(() => stageEl.classList.remove('is-hopping'), 700);
   }
-  puppyHearts(4 + Math.floor(Math.random() * 3));
+  petHearts(childId, 4 + Math.floor(Math.random() * 3));
 }
 
-function renderPuppy() {
-  const card = $('#cardPuppy');
-  if (!card) return;
-  puppySyncDay();
-  const p = puppy();
-  const st = puppyStageOf(p.xp);
-  const next = puppyNextStage(st);
-
-  card.classList.remove('lvl-1', 'lvl-2', 'lvl-3', 'lvl-4');
-  card.classList.add('lvl-' + st.level);
-
-  const img = $('#puppyImg');
-  if (img) {
-    const src = avatarSrc(st.img);
-    if (img.getAttribute('src') !== src) img.setAttribute('src', src);
-    img.alt = `${p.name} · ${st.title}`;
-  }
-  $('#puppyLv').textContent = `Lv.${st.level} ${st.label}`;
-  $('#puppyName').textContent = p.name;
-
-  const hall = $('#puppyHall');
-  if (hall) {
-    hall.hidden = !(p.hall > 0);
-    hall.textContent = `🏆 명예의 전당 ${p.hall}마리`;
-  }
+function petCardHtml(childId) {
+  const p = petOf(childId);
+  const stages = petStages(childId);
+  const st = petStageOf(p.xp);
+  const next = petNextStage(st);
+  const m = memberById(childId);
+  const label = petLabel(childId);
+  const top = st.level === PET_STAGE_META[PET_STAGE_META.length - 1].level;
 
   let pct = 100;
   if (next) pct = clamp(Math.round(((p.xp - st.min) / (next.min - st.min)) * 100), 0, 100);
-  $('#puppyXpFill').style.width = pct + '%';
-  $('#puppyXpText').textContent = next ? `${p.xp} / ${next.min} XP` : `${p.xp} XP · 최고 단계`;
+  const need = next ? Math.max(1, Math.ceil((next.min - p.xp) / PET_ITEM_XP)) : 0;
+  const xpText = next ? `${p.xp} / ${next.min} XP` : `${p.xp} XP · 최고 단계`;
+  const nextText = next ? `다음 단계까지 할 일 ${need}개!` : '최고 단계예요! 새 강아지를 키워 볼까요?';
 
-  const nextEl = $('#puppyNext');
-  if (next) {
-    const need = Math.max(1, Math.ceil((next.min - p.xp) / PUPPY_XP_PER_ITEM));
-    nextEl.textContent = `다음 단계까지 할 일 ${need}개!`;
-  } else {
-    nextEl.textContent = '최고 단계예요! 새 강아지를 키워 볼까요?';
-  }
-
-  const say = $('#puppySay');
-  if (say) say.textContent = puppySaySticky || st.say;
-
-  const track = $('#puppyTrack');
-  if (track) {
-    track.innerHTML = PUPPY_STAGES.map(s => {
-      const cls = s.level === st.level ? 'is-now' : (s.level < st.level ? 'is-past' : '');
-      return `<span class="puppy-step ${cls}"><img src="${avatarSrc(s.img)}" alt=""><b>${s.level}단계</b></span>`;
-    }).join('');
-  }
-
-  const badge = $('#puppyBadge');
-  const btn = $('#btnPuppyNew');
-  const top = st.level === PUPPY_STAGES[PUPPY_STAGES.length - 1].level;
-  if (badge) badge.hidden = !top;
-  if (btn) btn.hidden = !top;
+  return `<article class="pet-card lvl-${st.level}" data-pet="${childId}">
+      <div class="pet-owner">
+        ${m && m.img ? `<img class="pet-owner-avatar" src="${m.img}" alt="${esc(label)}">` : ''}
+        <span class="pet-owner-name">${esc(label)}</span>
+        <span class="pet-owner-tag">${esc(label)}의 강아지</span>
+        <span class="pet-hall" title="명예의 전당">🏆 ${p.hall}</span>
+      </div>
+      <button class="pet-stage" type="button" data-act="poke" aria-label="${esc(label)} 강아지 쓰다듬기">
+        <img class="pet-img" src="${avatarSrc(petStageImg(childId, st.level))}" alt="${esc(p.name)} · ${esc(st.title)}" draggable="false">
+        <span class="pet-sparkles" aria-hidden="true"></span>
+      </button>
+      <div class="pet-info">
+        <div class="pet-head">
+          <span class="pet-name">${esc(p.name)}</span>
+          <button class="mini-btn" type="button" data-act="rename">이름 바꾸기</button>
+        </div>
+        <div><span class="pet-lv">Lv.${st.level} ${esc(st.label)}</span></div>
+        <div class="pet-xp">
+          <div class="pet-bar"><i style="width:${pct}%"></i></div>
+          <div class="pet-xp-meta">
+            <span class="pet-xp-num">${xpText}</span>
+            <span class="pet-next">${nextText}</span>
+          </div>
+        </div>
+        <p class="pet-say">${esc(petSaySticky[childId] || st.say)}</p>
+        ${top ? `<div class="pet-foot"><span class="pet-badge">👑 슈퍼 왕관 강아지 달성!</span>
+          <button class="soft-btn pink" type="button" data-act="new">새 강아지 키우기</button></div>` : ''}
+      </div>
+      <div class="pet-track" aria-hidden="true">
+        ${stages.map(s => {
+          const cls = s.level === st.level ? 'is-now' : (s.level < st.level ? 'is-past' : '');
+          return `<span class="pet-step ${cls}"><img src="${avatarSrc(s.img)}" alt=""><b>${s.level}단계</b></span>`;
+        }).join('')}
+      </div>
+    </article>`;
 }
 
-function openPuppyNameModal() {
-  const p = puppy();
+function renderPets() {
+  const grid = $('#petsGrid');
+  if (!grid) return;
+  petSyncAllDays();
+  const ids = petIds();
+  grid.classList.toggle('is-single', ids.length < 2);
+  const html = ids.map(petCardHtml).join('');
+  if (grid.dataset.stamp === html) return;
+  grid.dataset.stamp = html;
+  grid.innerHTML = html;
+}
+
+function openPetNameModal(childId) {
+  const p = petOf(childId);
   openModal('강아지 이름 바꾸기', `
-    <p class="hint" style="margin:0 0 12px">우리집 강아지를 뭐라고 부를까요?</p>
-    <form id="puppyNameForm">
+    <p class="hint" style="margin:0 0 12px">${esc(petLabel(childId))}의 강아지를 뭐라고 부를까요?</p>
+    <form id="petNameForm">
       <label class="field"><span>이름</span>
-        <input name="puppyName" maxlength="12" value="${esc(p.name)}" placeholder="예: 몽실이">
+        <input name="petName" maxlength="12" value="${esc(p.name)}" placeholder="예: 몽실이">
       </label>
       <div class="modal-actions">
         <span class="spacer"></span>
@@ -1469,14 +1589,14 @@ function openPuppyNameModal() {
         <button type="button" class="primary-btn" data-act="save">저장</button>
       </div>
     </form>`, body => {
-    const form = body.querySelector('#puppyNameForm');
+    const form = body.querySelector('#petNameForm');
     const input = form.querySelector('input');
     const submit = () => {
       const v = input.value.trim().slice(0, 12);
       if (!v) { toast('이름을 적어 주세요'); input.focus(); return; }
-      puppy().name = v;
-      puppySaySticky = '';
-      save(); renderPuppy(); closeModal();
+      p.name = v;
+      petSaySticky[childId] = '';
+      save(); renderPets(); closeModal();
       toast(`이제 ${v}라고 불러요 🐶`);
     };
     form.addEventListener('submit', e => { e.preventDefault(); submit(); });
@@ -1485,20 +1605,20 @@ function openPuppyNameModal() {
   });
 }
 
-function openNewPuppyModal() {
-  const p = puppy();
+function openNewPetModal(childId) {
+  const p = petOf(childId);
   confirmModal(
     '새 강아지 키우기',
-    `${p.name}는 명예의 전당에 남고, 새 아기 강아지가 Lv.1부터 다시 자라요. 지금까지의 명예의 전당: ${p.hall}마리. 계속할까요?`,
+    `${petLabel(childId)}의 ${p.name}는 명예의 전당에 남고, 새 아기 강아지가 Lv.1부터 다시 자라요. 지금까지의 명예의 전당: ${p.hall}마리. 계속할까요?`,
     '새 강아지 키우기',
     () => {
       p.hall = (p.hall || 0) + 1;
       p.xp = 0;
       p.awarded = {};
       p.day = todayISO();
-      puppySaySticky = '';
-      save(); renderPuppy(); puppyBurst(14);
-      toast(`🏆 ${p.name}가 명예의 전당에 들어갔어요! 새 강아지가 태어났어요 🐶`);
+      petSaySticky[childId] = '';
+      save(); renderPets(); petBurst(childId, 14);
+      toast(`🏆 ${p.name}가 명예의 전당에 들어갔어요! ${petLabel(childId)}의 새 강아지가 태어났어요 🐶`);
     }
   );
 }
@@ -2250,8 +2370,7 @@ function openSettingsModal() {
 /* ---------------- 전체 렌더 ---------------- */
 function renderAll() {
   renderHeader();
-  renderPuppy();
-  renderAssigneeOptions();
+  renderPets();
   renderCalendar();
   renderTodos();
   renderDinner();
@@ -2333,9 +2452,11 @@ function bindEvents() {
     const input = $('#todoInput');
     const text = input.value.trim();
     if (!text) { input.focus(); return; }
+    const target = isChild(todoTargetSel) ? todoTargetSel : '';
     const item = {
       id: uid(), text,
-      who: $('#todoAssignee').value || '',
+      target,
+      who: target,
       due: $('#todoDue').value || '',
       done: false, created: Date.now()
     };
@@ -2344,6 +2465,12 @@ function bindEvents() {
     $('#todoDue').value = '';
     save(); renderTodos();
     input.focus();
+  });
+  $('#todoTargetRow').addEventListener('click', e => {
+    const chip = e.target.closest('.target-chip');
+    if (!chip) return;
+    todoTargetSel = chip.dataset.target || '';
+    renderTodoTargetChips();
   });
   $('#todoList').addEventListener('click', e => {
     const li = e.target.closest('.check-item');
@@ -2354,14 +2481,14 @@ function bindEvents() {
     if (e.target.closest('[data-act=toggle]')) {
       item.done = !item.done;
       if (todoList === 'todo') dogAwardTodo(item, item.done);
-      save(); renderTodos(); renderPuppy();
+      save(); renderTodos(); renderPets();
     } else if (e.target.closest('[data-act=del]')) {
       const kind = todoList === 'shopping' ? '장보기' : '할 일';
       confirmModal(`${kind}를 지울까요?`, `"${item.text}" 항목이 사라져요.`, '지우기', () => {
         const idx = list.findIndex(x => x.id === item.id);
         if (idx >= 0) list.splice(idx, 1);
         if (item.done && todoList === 'todo') dogAwardTodo(item, false);
-        save(); renderTodos(); renderPuppy(); toast('지웠어요');
+        save(); renderTodos(); renderPets(); toast('지웠어요');
       }, true);
     }
   });
@@ -2423,8 +2550,8 @@ function bindEvents() {
           Object.values(state.routineLog).forEach(log => {
             if (log[child] && Array.isArray(log[child].done)) log[child].done = log[child].done.filter(x => x !== id);
           });
-          puppyAward(routineAwardKey(todayISO(), child, id), false);
-          save(); renderRoutine(); renderWeekBoard(); renderPuppy(); toast('루틴을 지웠어요');
+          dogAwardRoutine(todayISO(), child, id, false);
+          save(); renderRoutine(); renderWeekBoard(); renderPets(); toast('루틴을 지웠어요');
         }, true);
         return;
       }
@@ -2460,7 +2587,7 @@ function bindEvents() {
         l.done.forEach(id => dogAwardRoutine(routineDate, child, id, false));
         l.done = [];
       });
-      save(); renderRoutine(); renderWeekBoard(); renderPuppy(); toast('체크를 지웠어요');
+      save(); renderRoutine(); renderWeekBoard(); renderPets(); toast('체크를 지웠어요');
     });
   };
 
@@ -2518,13 +2645,20 @@ function bindEvents() {
     }
   });
 
-  // 🐶 강아지 키우기
-  const puppyStageBtn = $('#puppyStage');
-  if (puppyStageBtn) puppyStageBtn.onclick = puppyPoke;
-  const btnPuppyName = $('#btnPuppyName');
-  if (btnPuppyName) btnPuppyName.onclick = openPuppyNameModal;
-  const btnPuppyNew = $('#btnPuppyNew');
-  if (btnPuppyNew) btnPuppyNew.onclick = openNewPuppyModal;
+  // 🐶 강아지 키우기 (유온·지온 각자 한 마리)
+  const petsGrid = $('#petsGrid');
+  if (petsGrid) {
+    petsGrid.addEventListener('click', e => {
+      const card = e.target.closest('.pet-card');
+      if (!card) return;
+      const childId = card.dataset.pet;
+      const act = e.target.closest('[data-act]');
+      if (!act) return;
+      if (act.dataset.act === 'poke') petPoke(childId);
+      else if (act.dataset.act === 'rename') openPetNameModal(childId);
+      else if (act.dataset.act === 'new') openNewPetModal(childId);
+    });
+  }
 
   // 설정 · 모달 닫기
   $('#btnSettings').onclick = openSettingsModal;
@@ -2546,7 +2680,7 @@ function bindEvents() {
 
 /* 지금 화면의 배포 표식입니다. app.js를 고쳐 올릴 때 이 값을 함께 올려 두면
    켜 둔 태블릿이 새 배포를 알아채고 조용히 알려 줍니다. */
-const BUILD = '2026-11-20-2';
+const BUILD = '2026-11-20-3';
 const WAKE_PREF_KEY = 'urijip-wake-v1';
 const WEATHER_REFRESH_MS = 30 * 60 * 1000;   // 날씨·미세먼지 30분마다
 const VERSION_CHECK_MS = 60 * 60 * 1000;     // 새 배포 확인 1시간마다

@@ -357,7 +357,7 @@ h1,h2,h3,h4,p{margin:0}
 .add-row{
   display:grid;gap:6px;margin-bottom:10px;
   grid-template-columns:minmax(0,0.85fr) minmax(0,1.15fr) 38px;
-  grid-template-areas:"text text add" "who due .";
+  grid-template-areas:"text text add" "target target target" "due . .";
   align-items:stretch;
 }
 .add-row input[type=text]{
@@ -370,7 +370,7 @@ h1,h2,h3,h4,p{margin:0}
   border-radius:11px;padding:7px 6px;font-size:11.5px;color:#7A6555;
 }
 .mini-date{
-  grid-area:due;width:100%;min-width:0;border:1px solid var(--line);background:#FFFDF9;
+  grid-area:due;width:100%;max-width:150px;min-width:0;border:1px solid var(--line);background:#FFFDF9;
   border-radius:11px;padding:6px 4px;font-size:10.5px;color:#7A6555;
 }
 .search-row{display:flex;gap:6px;margin:0}
@@ -1074,44 +1074,75 @@ h1,h2,h3,h4,p{margin:0}
 }
 
 /* =========================================================
-   🐶 우리집 강아지 키우기 (2026-11 추가)
+   🐶 우리집 강아지 키우기 — 유온·지온 각자 한 마리 (2026-11-20)
    ========================================================= */
-.card-puppy{
-  position:relative;overflow:hidden;margin-bottom:18px;
+.card-pets{
+  position:relative;
+  margin-bottom:18px;
   background:
     radial-gradient(560px 220px at 8% -20%, #FFF3E2 0%, rgba(255,243,226,0) 70%),
-    radial-gradient(420px 200px at 100% 120%, #FDEAF3 0%, rgba(253,234,243,0) 70%),
+    radial-gradient(420px 200px at 100% 120%, #EFF3FF 0%, rgba(239,243,255,0) 70%),
     #FFFCF6;
   border:1px solid #F7E8D4;
 }
-.puppy-inner{display:grid;grid-template-columns:minmax(0,200px) minmax(0,1fr) auto;gap:20px;align-items:center}
+.pets-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.pets-head .card-title{margin:0}
+.pets-hint{margin:0;font-size:12px;color:var(--ink-3);line-height:1.5}
 
-.puppy-stage{
-  position:relative;display:block;width:100%;padding:0;border:0;background:transparent;
-  border-radius:24px;overflow:hidden;align-self:stretch;
-  transition:transform .18s ease;
-  -webkit-tap-highlight-color:transparent;
+/* 태블릿·PC: 두 강아지 나란히 / 휴대폰: 위아래로 */
+.pets-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
+.pets-grid.is-single{grid-template-columns:minmax(0,1fr)}
+
+.pet-card{
+  position:relative;overflow:hidden;
+  display:grid;
+  grid-template-columns:minmax(0,132px) minmax(0,1fr);
+  grid-template-areas:"owner owner" "stage info" "track track";
+  gap:10px 14px;align-items:start;
+  padding:13px 14px 12px;
+  border-radius:22px;border:1px solid #F4E4D1;
+  background:
+    radial-gradient(320px 140px at 10% -10%, #FFF4E4 0%, rgba(255,244,228,0) 70%),
+    #FFFDF8;
+  transition:background .3s ease, border-color .3s ease;
 }
-.puppy-stage:hover{transform:translateY(-2px) rotate(-.6deg)}
-.puppy-stage:active{transform:scale(.975)}
-.puppy-img{
+
+/* 아이 이름 배지 */
+.pet-owner{grid-area:owner;display:flex;align-items:center;gap:7px;min-width:0}
+.pet-owner-avatar{
+  width:28px;height:28px;flex:none;border-radius:50%;object-fit:cover;
+  border:2px solid #fff;box-shadow:0 2px 6px rgba(150,120,90,.18);
+}
+.pet-owner-name{font-family:var(--font-title);font-size:15px;color:#4A3729;line-height:1.1;white-space:nowrap}
+.pet-owner-tag{
+  font-size:10.5px;color:#A08B79;background:#FFF4E4;border:1px solid #F3E2CC;
+  border-radius:999px;padding:2px 8px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;min-width:0;
+}
+.pet-hall{
+  margin-left:auto;flex:none;font-size:11px;font-weight:800;color:#8A6430;
+  background:#FFF7E6;border:1px solid #F2DCA8;border-radius:999px;padding:2px 8px;
+  white-space:nowrap;
+}
+
+/* 강아지 그림 (누르면 하트 뿅) */
+.pet-stage{
+  grid-area:stage;position:relative;display:block;width:100%;padding:0;border:0;
+  background:transparent;border-radius:20px;overflow:hidden;cursor:pointer;
+  transition:transform .18s ease;-webkit-tap-highlight-color:transparent;
+}
+.pet-stage:hover{transform:translateY(-2px) rotate(-.6deg)}
+.pet-stage:active{transform:scale(.975)}
+.pet-img{
   display:block;width:100%;aspect-ratio:1/1;object-fit:cover;
-  border-radius:24px;box-shadow:0 10px 24px rgba(178,138,96,.2);
+  border-radius:20px;box-shadow:0 10px 22px rgba(178,138,96,.18);
   background:#FDEFE0;
-  transition:filter .3s ease;
 }
-.puppy-stage.is-hopping .puppy-img{animation:puppyHop .62s ease}
-.puppy-stage.is-popping .puppy-img{animation:puppyPop .5s ease}
+.pet-stage.is-hopping .pet-img{animation:puppyHop .62s ease}
+.pet-card.is-popping .pet-img{animation:puppyPop .5s ease}
+.pet-sparkles{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:20px;z-index:2}
 
-.puppy-hall{
-  position:absolute;top:9px;left:9px;
-  background:rgba(255,252,244,.92);border:1px solid #F2DCA8;color:#8A6430;
-  font-size:11px;font-weight:800;border-radius:999px;padding:3px 9px;
-  box-shadow:var(--shadow-s);
-}
-
-/* 하트 뿅 + 반짝이 */
-.puppy-heart{
+.pet-heart{
   position:absolute;bottom:22%;font-size:19px;pointer-events:none;
   animation:heartFloat 1.15s ease-out forwards;
   filter:drop-shadow(0 2px 4px rgba(228,140,168,.35));
@@ -1121,7 +1152,7 @@ h1,h2,h3,h4,p{margin:0}
   22%{opacity:1;transform:translateY(-8px) scale(1.1)}
   100%{opacity:0;transform:translateY(-74px) scale(.9) rotate(8deg)}
 }
-.puppy-spark{position:absolute;font-size:16px;pointer-events:none;animation:sparkPop .95s ease-out forwards}
+.pet-spark{position:absolute;font-size:16px;pointer-events:none;animation:sparkPop .95s ease-out forwards}
 @keyframes sparkPop{
   0%{opacity:0;transform:scale(.3)}
   40%{opacity:1;transform:scale(1.25)}
@@ -1139,121 +1170,142 @@ h1,h2,h3,h4,p{margin:0}
   100%{transform:scale(1)}
 }
 
-.puppy-info{min-width:0;display:flex;flex-direction:column;gap:8px}
-.puppy-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.puppy-lv{
-  font-family:var(--font-body);font-size:11.5px;font-weight:800;
+/* 이름 · 단계 · XP */
+.pet-info{grid-area:info;min-width:0;display:flex;flex-direction:column;gap:6px}
+.pet-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.pet-name{
+  font-family:var(--font-title);font-size:21px;line-height:1.15;color:#4A3729;
+  letter-spacing:-.4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.pet-head .mini-btn{font-size:10.5px;padding:3px 7px;flex:none}
+.pet-lv{
+  display:inline-block;font-family:var(--font-body);font-size:11px;font-weight:800;
   background:linear-gradient(150deg,#FFF0D6,#FBE0B4);color:#8C6428;
-  border:1px solid #F5DFB2;border-radius:999px;padding:4px 11px;
-  white-space:nowrap;
+  border:1px solid #F5DFB2;border-radius:999px;padding:3px 10px;white-space:nowrap;
 }
-.card-puppy.lvl-2 .puppy-lv{background:linear-gradient(150deg,#FFF6D9,#FBE7A9);color:#8A6C1E;border-color:#F3E1A6}
-.card-puppy.lvl-3 .puppy-lv{background:linear-gradient(150deg,#E6F7EE,#CBEDDA);color:#2F7A55;border-color:#C6E8D5}
-.card-puppy.lvl-4 .puppy-lv{background:linear-gradient(150deg,#F1E8FF,#E3D3FB);color:#6A4BA8;border-color:#E0CFF8}
-
-.puppy-name-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.puppy-name{
-  font-family:var(--font-title);font-size:27px;line-height:1.1;color:#4A3729;
-  letter-spacing:-.4px;
-}
-.card-puppy.lvl-4 .puppy-name{
-  background:linear-gradient(96deg,#B98A2E,#8A5FC0 45%,#C4708F);
-  -webkit-background-clip:text;background-clip:text;color:transparent;
-}
-
-.puppy-xp{display:flex;flex-direction:column;gap:5px;margin-top:2px}
-.puppy-bar{
-  height:14px;border-radius:99px;background:#F3E5D3;
+.pet-xp{display:flex;flex-direction:column;gap:5px;margin-top:2px}
+.pet-bar{
+  height:13px;border-radius:99px;background:#F3E5D3;
   box-shadow:inset 0 1px 3px rgba(160,124,86,.14);overflow:hidden;
 }
-.puppy-bar i{
+.pet-bar i{
   display:block;height:100%;width:0;border-radius:99px;
   background:linear-gradient(90deg,#F9C7D3,#F6B3C4 45%,#F2A0B7);
   transition:width .55s cubic-bezier(.34,1.3,.5,1);
   box-shadow:0 0 10px rgba(242,160,183,.5);
 }
-.card-puppy.lvl-2 .puppy-bar i{background:linear-gradient(90deg,#FCE7A8,#F7D277 55%,#F0C25E)}
-.card-puppy.lvl-3 .puppy-bar i{background:linear-gradient(90deg,#BDECD2,#96DDBA 55%,#77CFA4)}
-.card-puppy.lvl-4 .puppy-bar i{background:linear-gradient(90deg,#EAD8FB,#D3B6F5 40%,#F3D98A 100%)}
-.puppy-xp-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-3)}
-.puppy-xp-meta #puppyXpText{font-weight:800;color:#A0805F}
-.puppy-next{font-weight:700;color:#B4687F}
-.card-puppy.lvl-3 .puppy-next{color:#2F7A55}
-.card-puppy.lvl-4 .puppy-next{color:#6A4BA8;font-weight:800}
-
-.puppy-say{
-  font-family:var(--font-hand);font-size:16.5px;line-height:1.45;color:#7A6555;
-  background:#FFF8EC;border:1px dashed #F3E3CB;border-radius:16px;
-  padding:9px 13px;margin-top:2px;position:relative;
-  transition:opacity .2s ease, transform .2s ease;
+.pet-xp-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--ink-3)}
+.pet-xp-num{font-weight:800;color:#A0805F}
+.pet-next{font-weight:700;color:#B4687F}
+.pet-say{
+  font-family:var(--font-hand);font-size:15px;line-height:1.4;color:#7A6555;
+  background:#FFF8EC;border:1px dashed #F3E3CB;border-radius:14px;
+  padding:7px 11px;margin:1px 0 0;position:relative;
 }
-.puppy-say.is-new{animation:sayPop .36s ease}
+.pet-say.is-new{animation:sayPop .36s ease}
 @keyframes sayPop{0%{opacity:.2;transform:translateY(4px) scale(.98)}100%{opacity:1;transform:none}}
-
-.puppy-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:2px}
-.puppy-badge{
-  font-size:12px;font-weight:800;color:#7A5326;
+.pet-foot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px}
+.pet-badge{
+  font-size:11.5px;font-weight:800;color:#7A5326;
   background:linear-gradient(150deg,#FFF6DE,#FBE6B4);border:1px solid #F3DCA4;
-  border-radius:999px;padding:6px 12px;
+  border-radius:999px;padding:5px 11px;
   box-shadow:0 4px 12px rgba(232,200,122,.32);
 }
+.pet-foot .soft-btn{font-size:11.5px;padding:5px 10px}
 
-/* 단계별 카드 분위기 */
-.card-puppy.lvl-3{background:
-  radial-gradient(560px 220px at 8% -20%, #EDFAF2 0%, rgba(237,250,242,0) 70%),
-  radial-gradient(420px 200px at 100% 120%, #FDF4E2 0%, rgba(253,244,226,0) 70%), #FFFDF8}
-.card-puppy.lvl-4{background:
-  radial-gradient(560px 240px at 8% -20%, #F5EDFF 0%, rgba(245,237,255,0) 70%),
-  radial-gradient(420px 220px at 100% 120%, #FFF3D9 0%, rgba(255,243,217,0) 70%), #FFFCFF;border-color:#EEE0FA}
-
-@media (max-width:760px){
-  .puppy-inner{grid-template-columns:minmax(0,132px) minmax(0,1fr);gap:14px;align-items:start}
-  .puppy-name{font-size:22px}
-  .puppy-say{font-size:14.5px;padding:8px 11px}
-}
-@media (max-width:480px){
-  .puppy-inner{grid-template-columns:minmax(0,1fr);gap:12px}
-  .puppy-stage{max-width:190px;margin:0 auto;align-self:center}
-  .puppy-info{align-items:stretch}
-  .puppy-name{font-size:23px}
-  .puppy-head{justify-content:center}
-  .puppy-name-row{justify-content:center}
-  .puppy-xp-meta{justify-content:center;text-align:center}
-  .puppy-say{text-align:center}
-  .puppy-foot{justify-content:center}
-}
-.puppy-sparkles{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:24px;z-index:2}
-
-/* 성장 단계 미니 트랙 */
-.puppy-track{display:flex;align-items:flex-end;gap:8px;padding-right:2px}
-.puppy-step{display:flex;flex-direction:column;align-items:center;gap:4px}
-.puppy-step img{
-  width:60px;height:60px;object-fit:cover;border-radius:16px;
+/* 1~4단계 미니 트랙 */
+.pet-track{grid-area:track;display:flex;align-items:flex-end;justify-content:center;gap:8px;padding-top:2px}
+.pet-step{display:flex;flex-direction:column;align-items:center;gap:3px}
+.pet-step img{
+  width:46px;height:46px;object-fit:cover;border-radius:13px;
   border:2px solid #F3E6D4;background:#FDF4E8;
   filter:grayscale(.35) opacity(.72);transition:.25s ease;
 }
-.puppy-step b{font-size:10px;font-weight:800;color:#B3A08D;letter-spacing:-.2px}
-.puppy-step.is-past img{filter:grayscale(.1) opacity(.9);border-color:#EFE0CB}
-.puppy-step.is-past b{color:#A08B79}
-.puppy-step.is-now img{
-  width:72px;height:72px;filter:none;border-color:#F2A9B8;
+.pet-step b{font-size:9.5px;font-weight:800;color:#B3A08D;letter-spacing:-.2px}
+.pet-step.is-past img{filter:grayscale(.1) opacity(.9);border-color:#EFE0CB}
+.pet-step.is-past b{color:#A08B79}
+.pet-step.is-now img{
+  width:56px;height:56px;filter:none;border-color:#F2A9B8;
   box-shadow:0 8px 18px rgba(242,169,184,.32);
 }
-.puppy-step.is-now b{color:#B4687F;font-size:11px}
-.card-puppy.lvl-3 .puppy-step.is-now img{border-color:#8FD4B0;box-shadow:0 8px 18px rgba(143,212,176,.35)}
-.card-puppy.lvl-3 .puppy-step.is-now b{color:#2F7A55}
-.card-puppy.lvl-4 .puppy-step.is-now img{border-color:#C7A9F0;box-shadow:0 8px 18px rgba(199,169,240,.4)}
-.card-puppy.lvl-4 .puppy-step.is-now b{color:#6A4BA8}
+.pet-step.is-now b{color:#B4687F;font-size:10.5px}
+
+/* 단계별 카드 분위기 (두 강아지 각자) */
+.pet-card.lvl-2{background:radial-gradient(320px 150px at 10% -10%, #FFF8DC 0%, rgba(255,248,220,0) 70%), #FFFEFA;border-color:#F3E7C4}
+.pet-card.lvl-3{
+  background:
+    radial-gradient(320px 150px at 10% -10%, #EDFAF2 0%, rgba(237,250,242,0) 70%),
+    radial-gradient(240px 140px at 100% 110%, #FFF6E2 0%, rgba(255,246,226,0) 70%),
+    #FFFDF8;
+  border-color:#D8EEE1;
+}
+.pet-card.lvl-4{
+  background:
+    radial-gradient(320px 160px at 10% -10%, #F5EDFF 0%, rgba(245,237,255,0) 70%),
+    radial-gradient(240px 140px at 100% 110%, #FFF3D9 0%, rgba(255,243,217,0) 70%),
+    #FFFCFF;
+  border-color:#EEE0FA;
+}
+.pet-card.lvl-2 .pet-lv{background:linear-gradient(150deg,#FFF6D9,#FBE7A9);color:#8A6C1E;border-color:#F3E1A6}
+.pet-card.lvl-3 .pet-lv{background:linear-gradient(150deg,#E6F7EE,#CBEDDA);color:#2F7A55;border-color:#C6E8D5}
+.pet-card.lvl-4 .pet-lv{background:linear-gradient(150deg,#F1E8FF,#E3D3FB);color:#6A4BA8;border-color:#E0CFF8}
+.pet-card.lvl-2 .pet-bar i{background:linear-gradient(90deg,#FCE7A8,#F7D277 55%,#F0C25E)}
+.pet-card.lvl-3 .pet-bar i{background:linear-gradient(90deg,#BDECD2,#96DDBA 55%,#77CFA4)}
+.pet-card.lvl-4 .pet-bar i{background:linear-gradient(90deg,#EAD8FB,#D3B6F5 40%,#F3D98A 100%)}
+.pet-card.lvl-3 .pet-next{color:#2F7A55}
+.pet-card.lvl-4 .pet-next{color:#6A4BA8;font-weight:800}
+.pet-card.lvl-4 .pet-name{
+  background:linear-gradient(96deg,#B98A2E,#8A5FC0 45%,#C4708F);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.pet-card.lvl-3 .pet-step.is-now img{border-color:#8FD4B0;box-shadow:0 8px 18px rgba(143,212,176,.35)}
+.pet-card.lvl-3 .pet-step.is-now b{color:#2F7A55}
+.pet-card.lvl-4 .pet-step.is-now img{border-color:#C7A9F0;box-shadow:0 8px 18px rgba(199,169,240,.4)}
+.pet-card.lvl-4 .pet-step.is-now b{color:#6A4BA8}
 
 @media (max-width:1080px){
-  .puppy-inner{grid-template-columns:minmax(0,170px) minmax(0,1fr)}
-  .puppy-track{grid-column:1/-1;justify-content:center;gap:12px;margin-top:2px}
-  .puppy-step img{width:52px;height:52px}
-  .puppy-step.is-now img{width:62px;height:62px}
+  .pet-card{grid-template-columns:minmax(0,118px) minmax(0,1fr);gap:9px 12px}
+  .pet-name{font-size:19px}
+  .pet-say{font-size:14px;padding:6px 10px}
+  .pet-step img{width:42px;height:42px}
+  .pet-step.is-now img{width:50px;height:50px}
+}
+@media (max-width:700px){
+  .pets-grid{grid-template-columns:minmax(0,1fr)}
 }
 @media (max-width:480px){
-  .puppy-track{gap:9px;margin-top:4px}
-  .puppy-step img{width:46px;height:46px;border-radius:13px}
-  .puppy-step.is-now img{width:54px;height:54px}
-  .puppy-step b{font-size:9.5px}
+  .pet-card{
+    grid-template-columns:minmax(0,1fr);
+    grid-template-areas:"owner" "stage" "info" "track";
+    padding:12px;
+  }
+  .pet-stage{max-width:180px;margin:0 auto;width:100%}
+  .pet-info{gap:7px}
+  .pet-info > div{text-align:center}
+  .pet-name{font-size:21px}
+  .pet-head,.pet-head-row{justify-content:center}
+  .pet-xp-meta{justify-content:center;text-align:center}
+  .pet-say{text-align:center}
+  .pet-foot{justify-content:center}
+  .pet-track{gap:7px;margin-top:4px}
 }
+
+/* ---------------- 할 일 대상 칩 (우리집 / 유온 / 지온) ---------------- */
+.target-row{
+  grid-area:target;display:flex;align-items:center;gap:5px;flex-wrap:wrap;
+  margin-top:1px;
+}
+.target-row .target-label{font-size:10.5px;color:var(--ink-3);font-weight:700;margin-right:1px}
+.target-chip{
+  border:1px solid var(--line);background:#FFFDF9;color:#8B7360;
+  border-radius:999px;padding:4px 10px;font-size:11.5px;font-weight:800;
+  transition:.15s ease;line-height:1.2;
+}
+.target-chip:hover{background:#FFF6EC;border-color:#EBD8C1}
+.target-chip.is-active{
+  background:linear-gradient(160deg,#FCE3EA,#F9D2DE);color:#A8556C;
+  border-color:#F3C3D1;box-shadow:0 2px 8px rgba(242,160,183,.22);
+}
+.target-row .target-hint{font-size:10.5px;color:#B3A08D;font-weight:700;margin-left:2px}
+.ci-meta .who.who-pet{background:#FDEDF2;color:#B4687F}
+.ci-meta .who.who-home{background:#F2F7F2;color:#7A8F7C}
