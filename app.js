@@ -351,8 +351,20 @@ const b64 = {
 
 let pinLock = null;        // { v, enabled, salt, iterations, createdAt }
 let stateKey = null;       // 잠금 해제 동안만 메모리에 두는 AES 키
+let stateKdf = null;       // stateKey 를 만든 값 { salt, iterations }
 let encSaveTimer = null;
 let saveChain = Promise.resolve();
+
+/* ☁️ 동기화 상태 (자세한 동작은 아래 '폰 ↔ 태블릿 동기화' 절에 있습니다) */
+let syncOn = false;        // 잠금을 연 뒤에만 동작
+let syncBusy = false;      // 지금 서버와 이야기하는 중
+let syncDirty = false;     // 이 기기에 아직 못 올린 변경이 있음
+let syncTimer = null;      // 폴링 타이머
+let syncPushTimer = null;  // 변경 후 올리기까지의 짧은 기다림
+let syncPin = '';          // 이 탭이 열려 있는 동안만 두는 PIN(다른 기기 암호문을 풀 때)
+let syncSkip = 0;          // 연속 실패 시 잠깐 쉬기
+let syncFails = 0;
+let localUpdatedAt = 0;    // 이 기기 기록의 최신 시각(ms)
 
 async function deriveKey(pin, saltB64, iterations) {
   const material = await crypto.subtle.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveKey']);
@@ -377,13 +389,18 @@ function readJSON(key) {
   try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
 }
 
-function queueEncryptedSave() {
+/* 이 기기 저장: 예전 150ms 디바운스를 없애고 바로 암호문을 씁니다.
+   바꾸자마자 창을 닫아도 기록이 빠지지 않도록 하기 위해서예요. */
+function queueEncryptedSave(stamp) {
   const snapshot = state;
+  const at = Number(stamp) || Math.max(Date.now(), localUpdatedAt + 1);
   saveChain = saveChain.then(async () => {
     if (!stateKey) return; // 그사이 잠금을 해제했으면 암호문을 다시 썼지 않아요
     try {
       const env = await encryptJSON(stateKey, snapshot);
+      env.savedAt = at;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(env));
+      if (at > localUpdatedAt) localUpdatedAt = at;
     } catch (e) {
       if (!saveFailWarned) { saveFailWarned = true; toast('암호화 저장에 문제가 생겼어요'); }
     }
@@ -395,13 +412,188 @@ function save() {
   try {
     if (stateKey) {
       clearTimeout(encSaveTimer);
-      encSaveTimer = setTimeout(queueEncryptedSave, 150);
+      encSaveTimer = null;
+      queueEncryptedSave();
+      scheduleSyncPush();
       return;
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    scheduleSyncPush();
   } catch (e) {
     if (!saveFailWarned) { saveFailWarned = true; toast('저장 공간이 부족해 기록을 저장하지 못했어요'); }
   }
+}
+
+/* ---------------- ☁️ 폰 ↔ 태블릿 동기화 (Google Apps Script 웹 앱) ---------------- */
+/* 서버에는 PIN에서 나온 열쇠로 AES-256-GCM 암호화한 문자열(enc)만 오갑니다.
+   저장되는 모양은 { v, updatedAt, enc } 하나뿐이고, enc 안에도 평문 가족 정보는 없어요.
+   같은 가족 PIN을 아는 기기만 이 암호문을 풀 수 있습니다. */
+const SYNC_URL = 'https://script.google.com/macros/s/AKfycbxKFn5vKWLgMhKDCYbKa1_YLRUN9TuYwECZmiIGWlmLrNzd8s5XBb00-WWsKGJZ8nvCig/exec';
+const SYNC_TOKEN = 'urijip-2026-h1-7f3c9a';
+const SYNC_POLL_MS = 9000;   // 9초마다 다른 기기 변경분 확인
+const SYNC_PUSH_MS = 900;    // 변경 후 0.9초 뒤 올리기
+const SYNC_LABEL = { ok: '☁️ 동기화됨', busy: '☁️ 동기화 중…', off: '☁️ 오프라인', wait: '☁️ 동기화 대기' };
+
+function paintSync(kind) {
+  const el = document.getElementById('syncPill');
+  if (!el) return;
+  el.textContent = SYNC_LABEL[kind] || SYNC_LABEL.ok;
+  el.dataset.state = kind;
+}
+
+async function syncGet() {
+  const res = await fetch(SYNC_URL + '?t=' + encodeURIComponent(SYNC_TOKEN) + '&n=' + Date.now(), { cache: 'no-store' });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+
+async function syncPut(updatedAt, enc) {
+  // text/plain 으로 보내면 브라우저가 사전 확인(preflight) 요청을 하지 않습니다.
+  const res = await fetch(SYNC_URL, {
+    method: 'POST',
+    cache: 'no-store',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ t: SYNC_TOKEN, v: 1, updatedAt: updatedAt, enc: enc })
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res;
+}
+
+/* 지금 화면의 기록을 클라우드용 암호문으로 (열쇠를 만든 salt 값을 함께 담아 둡니다) */
+async function encryptCloudPayload() {
+  if (!stateKey || !stateKdf) return '';
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const pt = new TextEncoder().encode(JSON.stringify(state));
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, stateKey, pt);
+  const blob = JSON.stringify({ s: stateKdf.salt, i: stateKdf.iterations, iv: b64.enc(iv), d: b64.enc(ct) });
+  return b64.enc(new TextEncoder().encode(blob));
+}
+
+/* 다른 기기가 올린 암호문 풀기. 그 기기의 salt 가 달라도 PIN만 같으면 열립니다. */
+async function decryptCloudPayload(encB64, pin, fallbackKey) {
+  let blob = null;
+  try { blob = JSON.parse(new TextDecoder().decode(b64.dec(encB64))); } catch (e) { return null; }
+  if (!blob || !blob.iv || !blob.d) return null;
+  const keys = [];
+  if (fallbackKey) keys.push(fallbackKey);
+  if (blob.s) {
+    try { keys.push(await deriveKey(pin, blob.s, blob.i || PIN_ITERATIONS)); } catch (e) { }
+  }
+  for (let i = 0; i < keys.length; i++) {
+    try {
+      const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64.dec(blob.iv) }, keys[i], b64.dec(blob.d));
+      return JSON.parse(new TextDecoder().decode(pt));
+    } catch (e) { /* 다음 열쇠로 */ }
+  }
+  return null;
+}
+
+/* 변경이 생기면 잠깐 모았다가 클라우드로 올립니다. */
+function scheduleSyncPush() {
+  if (!syncOn || !stateKey) return;
+  syncDirty = true;
+  clearTimeout(syncPushTimer);
+  syncPushTimer = setTimeout(function () { syncPushNow(); }, SYNC_PUSH_MS);
+}
+
+async function syncPushNow() {
+  if (!syncOn || !stateKey || syncBusy) return;
+  syncBusy = true;
+  paintSync('busy');
+  try {
+    const at = Math.max(Date.now(), localUpdatedAt + 1);
+    const enc = await encryptCloudPayload();
+    if (!enc) throw new Error('no-key');
+    await syncPut(at, enc);
+    localUpdatedAt = at;
+    queueEncryptedSave(at);   // 이 기기 암호문에도 같은 시각을 남겨 새로고침 후 비교가 맞게
+    syncDirty = false;
+    syncFails = 0;
+    paintSync('ok');
+  } catch (e) {
+    syncFails++;
+    paintSync('off');
+  } finally {
+    syncBusy = false;
+  }
+}
+
+/* 입력 중이거나 창이 떠 있으면 방해하지 않고 다음 차례로 미룹니다. */
+function canTakeRemote() {
+  const el = document.activeElement;
+  if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return false;
+  if (!modalRoot.hidden) return false;
+  return true;
+}
+
+async function applyRemoteState(remote) {
+  const data = await decryptCloudPayload(remote.enc, syncPin, stateKey);
+  if (!data) return false;
+  state = mergeState(data);
+  localUpdatedAt = Math.max(localUpdatedAt, Number(remote.updatedAt) || 0);
+  queueEncryptedSave(localUpdatedAt);
+  renderAll();
+  return true;
+}
+
+async function syncPull(force) {
+  if (!syncOn || !stateKey || syncBusy) return;
+  if (document.visibilityState === 'hidden' && !force) return;
+  if (syncFails >= 3 && !force && syncSkip > 0) { syncSkip--; return; }
+  syncBusy = true;
+  try {
+    const remote = await syncGet();
+    syncFails = 0;
+    const remoteAt = (remote && remote.ok && remote.enc) ? Number(remote.updatedAt) || 0 : 0;
+    if (remoteAt > localUpdatedAt) {
+      if (syncDirty) {                 // 아직 못 올린 내 변경이 먼저
+        syncBusy = false;
+        await syncPushNow();
+        return;
+      }
+      if (!canTakeRemote()) { paintSync('wait'); return; }
+      const taken = await applyRemoteState(remote);
+      paintSync(taken ? 'ok' : 'wait');
+    } else if (syncDirty) {
+      syncBusy = false;
+      await syncPushNow();
+      return;
+    } else {
+      paintSync('ok');
+    }
+  } catch (e) {
+    syncFails++;
+    if (syncFails >= 3) syncSkip = 4;
+    paintSync('off');
+  } finally {
+    syncBusy = false;
+  }
+}
+
+function startSync() {
+  if (syncOn || !stateKey) return;
+  syncOn = true;
+  paintSync('busy');
+  clearInterval(syncTimer);
+  syncTimer = setInterval(function () { syncPull(false); }, SYNC_POLL_MS);
+  const pill = document.getElementById('syncPill');
+  if (pill) pill.onclick = function () { toast('☁️ 지금 맞추는 중…'); syncPull(true); };
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') syncPull(true);
+  });
+  window.addEventListener('focus', function () { syncPull(true); });
+  window.addEventListener('online', function () { syncPull(true); });
+  window.addEventListener('pagehide', flushSave);
+  window.addEventListener('beforeunload', flushSave);
+  syncPull(true);
+}
+
+/* 창을 닫는 순간에도 이 기기 저장이 밀려 있지 않도록 마지막으로 한 번 씁니다. */
+function flushSave() {
+  if (!stateKey) return;
+  clearTimeout(encSaveTimer);
+  queueEncryptedSave();
+  if (syncOn && syncDirty) syncPushNow();
 }
 
 /* 화면 상태 */
@@ -2203,13 +2395,22 @@ async function enablePin(pin) {
   const env = await encryptJSON(key, state);
   pinLock = { v: 1, enabled: true, salt, iterations: PIN_ITERATIONS, createdAt: Date.now() };
   stateKey = key;
+  stateKdf = { salt, iterations: PIN_ITERATIONS };
+  syncPin = pin;
   localStorage.setItem(PIN_LOCK_KEY, JSON.stringify(pinLock));
   localStorage.setItem(STORAGE_KEY, JSON.stringify(env));
+  startSync();
 }
 
 function disablePin() {
   clearTimeout(encSaveTimer);
   stateKey = null;
+  stateKdf = null;
+  syncOn = false;
+  clearInterval(syncTimer);
+  clearTimeout(syncPushTimer);
+  const pill = document.getElementById('syncPill');
+  if (pill) { pill.textContent = '☁️ 동기화 꺼짐'; pill.dataset.state = 'off'; }
   pinLock = null;
   localStorage.removeItem(PIN_LOCK_KEY);
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
@@ -2680,7 +2881,7 @@ function bindEvents() {
 
 /* 지금 화면의 배포 표식입니다. app.js를 고쳐 올릴 때 이 값을 함께 올려 두면
    켜 둔 태블릿이 새 배포를 알아채고 조용히 알려 줍니다. */
-const BUILD = '2026-11-20-3';
+const BUILD = '2026-11-20-4';
 const WAKE_PREF_KEY = 'urijip-wake-v1';
 const WEATHER_REFRESH_MS = 30 * 60 * 1000;   // 날씨·미세먼지 30분마다
 const VERSION_CHECK_MS = 60 * 60 * 1000;     // 새 배포 확인 1시간마다
@@ -2945,11 +3146,14 @@ async function unlockLocal(pin, onFail) {
     if (payload && payload.enc) data = await decryptJSON(key, payload);
     else if (payload) data = payload;
     stateKey = key;
+    stateKdf = { salt: pinLock.salt, iterations: pinLock.iterations || PIN_ITERATIONS };
+    syncPin = pin;
     state = data ? mergeState(data) : createFirstState();
     const screen = document.getElementById('lockScreen');
     if (screen) screen.remove();
     document.body.style.overflow = '';
     startApp();
+    startSync();
     if (!payload || !payload.enc) save();
     toast('잠금을 열었어요');
   } catch (e) {
@@ -2957,39 +3161,61 @@ async function unlockLocal(pin, onFail) {
   }
 }
 
-/* 볼트 PIN으로 열기: 자료를 풀고, 이 기기에 이미 쌓인 기록과 이어 붙입니다. */
+/* 볼트 PIN으로 열기: 이 기기 기록과 클라우드 최신본을 견줘 더 새것으로 시작합니다. */
 async function unlockApp(pin, onFail) {
-  let key;
+  let vaultKey;
   try {
-    key = await openVault(pin);
+    vaultKey = await openVault(pin);
   } catch (e) {
     if (onFail) onFail();
     return;
   }
 
+  syncPin = pin;
   const savedLock = readJSON(PIN_LOCK_KEY);
   const payload = readJSON(STORAGE_KEY);
+
+  // 이 기기의 저장 열쇠는 기기에 저장해 둔 salt로 만듭니다.
+  // (볼트를 새로 올리며 vault.kdf.salt가 바뀌어도 이 기기 기록이 초기화되지 않아요)
+  const vaultKdf = { salt: vault.kdf.salt, iterations: vault.kdf.iterations || PIN_ITERATIONS };
+  const localKdf = (savedLock && savedLock.salt)
+    ? { salt: savedLock.salt, iterations: savedLock.iterations || PIN_ITERATIONS }
+    : vaultKdf;
+  const localKey = await deriveKey(pin, localKdf.salt, localKdf.iterations);
+
   let local = null;
+  let localAt = 0;
   if (payload && payload.enc) {
-    try {
-      local = await decryptJSON(key, payload);
-    } catch (e) {
-      // 예전에 이 기기에서 따로 정한 PIN이 있으면 그 키로도 열어 봅니다.
-      if (savedLock && savedLock.salt) {
-        try {
-          local = await decryptJSON(await deriveKey(pin, savedLock.salt, savedLock.iterations || PIN_ITERATIONS), payload);
-        } catch (e2) { local = null; }
-      }
-      if (!local) {
-        // 풀지 못한 기록도 지우지 않고 따로 남겨 둡니다.
-        try { localStorage.setItem(STORAGE_KEY + '-locked-backup', JSON.stringify(payload)); } catch (e3) { }
-      }
+    // 예전에 다른 열쇠로 저장된 기록도 열리도록 기기 열쇠와 볼트 열쇠를 차례로 시도합니다.
+    const tries = [localKey, vaultKey];
+    for (let i = 0; i < tries.length && !local; i++) {
+      try { local = await decryptJSON(tries[i], payload); } catch (e) { local = null; }
+    }
+    if (!local) {
+      // 풀지 못한 기록도 지우지 않고 따로 남겨 둡니다.
+      try { localStorage.setItem(STORAGE_KEY + '-locked-backup', JSON.stringify(payload)); } catch (e) { }
     }
   } else if (payload && typeof payload === 'object') {
     local = payload;
   }
+  if (local) localAt = Number(payload && payload.savedAt) || 0;
 
-  state = local ? mergeState(local) : createFirstState();
+  // 다른 기기(폰·태블릿)가 올려 둔 최신 암호문
+  let remote = null;
+  try { remote = await syncGet(); } catch (e) { remote = null; }
+  const remoteAt = (remote && remote.ok && remote.enc) ? Number(remote.updatedAt) || 0 : 0;
+  const cloudState = (remoteAt && remoteAt > localAt) ? await decryptCloudPayload(remote.enc, pin, localKey) : null;
+
+  if (cloudState) {
+    state = mergeState(cloudState);
+    localUpdatedAt = remoteAt;
+  } else if (local) {
+    state = mergeState(local);
+    localUpdatedAt = localAt;
+  } else {
+    state = createFirstState();
+    localUpdatedAt = 0;
+  }
   // 볼트에 들어 있는 아이 이름으로 기본 이름(첫째/둘째)을 채웁니다. 직접 고친 이름은 그대로 둡니다.
   if (SD && SD.timetable && SD.timetable.children) {
     ['child1', 'child2'].forEach(id => {
@@ -2998,22 +3224,33 @@ async function unlockApp(pin, onFail) {
       if (m && meta && meta.label && (m.name === '첫째' || m.name === '둘째' || !m.name)) m.name = meta.label;
     });
   }
-  // 이 기기의 기록도 같은 PIN 열쇠로 저장되도록 맞춰 둡니다(기존 암호화 설정과 자연스럽게 연동).
+  // 이 기기의 기록도 같은 PIN 열쇠로 저장되도록 맞춰 둡니다(기기 salt는 그대로 유지).
   pinLock = {
     v: 1, enabled: true,
-    salt: vault.kdf.salt,
-    iterations: vault.kdf.iterations || PIN_ITERATIONS,
+    salt: localKdf.salt,
+    iterations: localKdf.iterations,
     createdAt: (savedLock && savedLock.createdAt) || Date.now()
   };
   try { localStorage.setItem(PIN_LOCK_KEY, JSON.stringify(pinLock)); } catch (e) { }
-  stateKey = key;
+  stateKey = localKey;
+  stateKdf = localKdf;
 
   const screen = document.getElementById('lockScreen');
   if (screen) screen.remove();
   document.body.style.overflow = '';
   startApp();
-  save();
-  toast('잠금을 열었어요');
+  startSync();
+
+  if (cloudState) {
+    // 클라우드에서 받은 상태를 이 기기 열쇠로 다시 저장해 둡니다.
+    queueEncryptedSave(localUpdatedAt);
+  } else {
+    // 이 기기 기록이 더 새것이거나 클라우드가 비어 있으면 지금 상태를 올려 둡니다.
+    queueEncryptedSave();
+    syncDirty = true;
+    syncPushNow();
+  }
+  toast(cloudState ? '☁️ 다른 기기 기록을 불러왔어요' : '잠금을 열었어요');
 }
 
 function showLockScreen() {

@@ -1068,6 +1068,20 @@ h1,h2,h3,h4,p{margin:0}
   box-shadow:var(--shadow-s);transition:.16s ease;white-space:nowrap;
 }
 .update-pill:hover{background:#FDEBC2}
+
+/* ☁️ 폰 ↔ 태블릿 동기화 상태 (2026-11-20) */
+.sync-pill{
+  border:1px solid #DCE9F7;background:#F3F8FF;color:#4A6C8C;
+  border-radius:999px;padding:5px 10px;font-size:11px;font-weight:800;
+  box-shadow:var(--shadow-s);transition:.16s ease;white-space:nowrap;cursor:pointer;
+}
+.sync-pill:hover{background:#E9F2FD}
+.sync-pill[data-state="busy"]{border-color:#F2DCA8;background:#FFF6DF;color:#8A6430}
+.sync-pill[data-state="off"]{border-color:#F3D3D3;background:#FFF1F1;color:#9A5A5A}
+.sync-pill[data-state="wait"]{border-color:#E3DCF7;background:#F7F4FF;color:#6C5C93}
+@media (max-width:760px){
+  .sync-pill{padding:5px 8px;font-size:10.5px}
+}
 @media (max-width:760px){
   .wake-btn .wake-label{display:none}
   .wake-btn{padding:6px 8px}
