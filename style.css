@@ -208,6 +208,11 @@ h1,h2,h3,h4,p{margin:0}
   transition:.16s ease;white-space:nowrap;
 }
 .mini-btn:hover{background:var(--cream)}
+.pet-reset-row{
+  margin-top:16px;padding-top:13px;border-top:1px dashed var(--line);
+  display:flex;justify-content:center;
+}
+.pet-reset-row .mini-btn{color:var(--ink-3);font-weight:600}
 .nav-btn{
   width:28px;height:28px;border-radius:9px;border:1px solid var(--line);
   background:#FFFDF9;color:#7A6555;font-size:15px;line-height:1;

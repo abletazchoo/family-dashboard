@@ -1887,8 +1887,13 @@ function openPetNameModal(childId) {
         <button type="button" class="soft-btn" data-act="cancel">취소</button>
         <button type="button" class="primary-btn" data-act="save">저장</button>
       </div>
-    </form>`, body => {
+    </form>
+    <div class="pet-reset-row">
+      <button type="button" class="mini-btn" data-act="restart">처음(알)부터 다시 시작</button>
+    </div>`, body => {
     const form = body.querySelector('#petNameForm');
+    const restart = body.querySelector('[data-act=restart]');
+    if (restart) restart.onclick = () => { closeModal(); openPetResetModal(childId); };
     const input = form.querySelector('input');
     const submit = () => {
       const v = input.value.trim().slice(0, 12);
@@ -1902,6 +1907,30 @@ function openPetNameModal(childId) {
     form.querySelector('[data-act=save]').onclick = submit;
     form.querySelector('[data-act=cancel]').onclick = closeModal;
   });
+}
+
+/* 어느 단계에서든 그 펫을 0 XP(알)부터 다시 시작합니다.
+   이름과 명예의 전당(지난 펫 기록)은 그대로 두고, XP·오늘 인정 표시만 지워요. */
+function openPetResetModal(childId) {
+  const p = petOf(childId);
+  const st = petStageOf(childId, p.xp);
+  const nowText = st.level === 1
+    ? '지금 알 단계라서 XP만 0으로 맞춰 처음 상태로 돌려요.'
+    : `지금 Lv.${st.level} ${st.label} · ${p.xp} XP인데, 0 XP로 돌아가 알부터 다시 자라요.`;
+  confirmModal(
+    `${p.name}를 알부터 다시 시작할까요?`,
+    `${petLabel(childId)}의 ${p.name} — ${nowText} 이름과 명예의 전당 기록(🏆 ${p.hall})은 그대로 남아요.`,
+    '알부터 다시 시작',
+    () => {
+      p.xp = 0;
+      p.awarded = {};
+      p.day = todayISO();
+      petSaySticky[childId] = '';
+      save(); renderPets(); petBurst(childId, 10);
+      toast(`${petEmoji(childId)} ${p.name}가 알부터 다시 자라요`);
+    },
+    true
+  );
 }
 
 function openNewPetModal(childId) {
@@ -2990,7 +3019,7 @@ function bindEvents() {
 
 /* 지금 화면의 배포 표식입니다. app.js를 고쳐 올릴 때 이 값을 함께 올려 두면
    켜 둔 태블릿이 새 배포를 알아채고 조용히 알려 줍니다. */
-const BUILD = '2026-11-21-2';
+const BUILD = '2026-11-21-3';
 const WAKE_PREF_KEY = 'urijip-wake-v1';
 const WEATHER_REFRESH_MS = 30 * 60 * 1000;   // 날씨·미세먼지 30분마다
 const VERSION_CHECK_MS = 60 * 60 * 1000;     // 새 배포 확인 1시간마다
