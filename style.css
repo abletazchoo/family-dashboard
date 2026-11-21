@@ -1088,7 +1088,7 @@ h1,h2,h3,h4,p{margin:0}
 }
 
 /* =========================================================
-   🐶 우리집 강아지 키우기 — 유온·지온 각자 한 마리 (2026-11-20)
+   🐢🐥 우리집 펫 키우기 — 유온 거북이 · 지온 병아리 (2026-11-21)
    ========================================================= */
 .card-pets{
   position:relative;
@@ -1100,10 +1100,16 @@ h1,h2,h3,h4,p{margin:0}
   border:1px solid #F7E8D4;
 }
 .pets-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.pets-head .card-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pet-head-badge{
+  font-family:var(--font-body);font-size:11px;font-weight:800;color:#7C8A6B;
+  background:#F4FAF1;border:1px solid #DDEBD4;border-radius:999px;padding:2px 9px;
+  letter-spacing:-.2px;white-space:nowrap;
+}
 .pets-head .card-title{margin:0}
 .pets-hint{margin:0;font-size:12px;color:var(--ink-3);line-height:1.5}
 
-/* 태블릿·PC: 두 강아지 나란히 / 휴대폰: 위아래로 */
+/* 태블릿·PC: 두 펫 나란히 / 휴대폰: 위아래로 */
 .pets-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
 .pets-grid.is-single{grid-template-columns:minmax(0,1fr)}
 
@@ -1139,7 +1145,7 @@ h1,h2,h3,h4,p{margin:0}
   white-space:nowrap;
 }
 
-/* 강아지 그림 (누르면 하트 뿅) */
+/* 펫 그림 (누르면 하트 뿅) */
 .pet-stage{
   grid-area:stage;position:relative;display:block;width:100%;padding:0;border:0;
   background:transparent;border-radius:20px;overflow:hidden;cursor:pointer;
@@ -1227,24 +1233,28 @@ h1,h2,h3,h4,p{margin:0}
 }
 .pet-foot .soft-btn{font-size:11.5px;padding:5px 10px}
 
-/* 1~4단계 미니 트랙 */
-.pet-track{grid-area:track;display:flex;align-items:flex-end;justify-content:center;gap:8px;padding-top:2px}
-.pet-step{display:flex;flex-direction:column;align-items:center;gap:3px}
-.pet-step img{
-  width:46px;height:46px;object-fit:cover;border-radius:13px;
-  border:2px solid #F3E6D4;background:#FDF4E8;
-  filter:grayscale(.35) opacity(.72);transition:.25s ease;
+/* 1~10단계 미니 트랙 (5칸씩 두 줄) */
+.pet-track{
+  grid-area:track;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:7px 4px;justify-items:center;padding-top:7px;margin-top:2px;
+  border-top:1px dashed #F1E1CC;
 }
-.pet-step b{font-size:9.5px;font-weight:800;color:#B3A08D;letter-spacing:-.2px}
+.pet-step{display:flex;flex-direction:column;align-items:center;gap:2px;width:100%;min-width:0}
+.pet-step img{
+  width:34px;height:34px;object-fit:cover;border-radius:10px;
+  border:2px solid #F3E6D4;background:#FDF4E8;
+  filter:grayscale(.35) opacity(.7);transition:.25s ease;
+}
+.pet-step b{font-size:9px;font-weight:800;color:#B3A08D;letter-spacing:-.2px;white-space:nowrap}
 .pet-step.is-past img{filter:grayscale(.1) opacity(.9);border-color:#EFE0CB}
 .pet-step.is-past b{color:#A08B79}
 .pet-step.is-now img{
-  width:56px;height:56px;filter:none;border-color:#F2A9B8;
-  box-shadow:0 8px 18px rgba(242,169,184,.32);
+  width:42px;height:42px;filter:none;border-color:#F2A9B8;
+  box-shadow:0 6px 14px rgba(242,169,184,.32);
 }
-.pet-step.is-now b{color:#B4687F;font-size:10.5px}
+.pet-step.is-now b{color:#B4687F;font-size:10px}
 
-/* 단계별 카드 분위기 (두 강아지 각자) */
+/* 단계별 카드 분위기 (두 펫 각자) */
 .pet-card.lvl-2{background:radial-gradient(320px 150px at 10% -10%, #FFF8DC 0%, rgba(255,248,220,0) 70%), #FFFEFA;border-color:#F3E7C4}
 .pet-card.lvl-3{
   background:
@@ -1277,12 +1287,67 @@ h1,h2,h3,h4,p{margin:0}
 .pet-card.lvl-4 .pet-step.is-now img{border-color:#C7A9F0;box-shadow:0 8px 18px rgba(199,169,240,.4)}
 .pet-card.lvl-4 .pet-step.is-now b{color:#6A4BA8}
 
+/* 5~10단계: 단계가 오를수록 카드도 함께 자라요 */
+.pet-card.lvl-5{background:radial-gradient(320px 150px at 10% -10%, #EFFBF3 0%, rgba(239,251,243,0) 70%), #FFFDF9;border-color:#D9EFE2}
+.pet-card.lvl-6{background:radial-gradient(320px 150px at 10% -10%, #E8F7F6 0%, rgba(232,247,246,0) 70%), #FCFEFE;border-color:#CFE9E8}
+.pet-card.lvl-7{background:radial-gradient(320px 150px at 10% -10%, #E9F2FC 0%, rgba(233,242,252,0) 70%), #FCFDFF;border-color:#D2E2F4}
+.pet-card.lvl-8{background:radial-gradient(320px 150px at 10% -10%, #F2ECFD 0%, rgba(242,236,253,0) 70%), #FDFCFF;border-color:#E0D5F5}
+.pet-card.lvl-9{
+  background:
+    radial-gradient(320px 160px at 10% -10%, #EAE6FA 0%, rgba(234,230,250,0) 70%),
+    radial-gradient(240px 140px at 100% 110%, #FFF6DA 0%, rgba(255,246,218,0) 70%),
+    #FBFAFF;
+  border-color:#D6CFF0;
+}
+.pet-card.lvl-10{
+  background:
+    radial-gradient(320px 170px at 10% -10%, #FFF6DC 0%, rgba(255,246,220,0) 70%),
+    radial-gradient(260px 150px at 100% 110%, #FFF0C9 0%, rgba(255,240,201,0) 70%),
+    #FFFDF6;
+  border-color:#F1DEA9;box-shadow:0 10px 26px rgba(226,192,120,.22);
+}
+.pet-card.lvl-5 .pet-lv{background:linear-gradient(150deg,#E8F8EF,#CFEDDD);color:#2F7A55;border-color:#C9E8D6}
+.pet-card.lvl-6 .pet-lv{background:linear-gradient(150deg,#E4F6F5,#C9E9E7);color:#2B6E6A;border-color:#C3E5E3}
+.pet-card.lvl-7 .pet-lv{background:linear-gradient(150deg,#E7F1FD,#CFE1F7);color:#2C5B8A;border-color:#CBDDF3}
+.pet-card.lvl-8 .pet-lv{background:linear-gradient(150deg,#F1EAFD,#DFD1F7);color:#66479E;border-color:#DACBF2}
+.pet-card.lvl-9 .pet-lv{background:linear-gradient(150deg,#EAE4FB,#D3C6F3);color:#503A8C;border-color:#CDC0EC}
+.pet-card.lvl-10 .pet-lv{background:linear-gradient(150deg,#FFF3CD,#F7D97F);color:#8A6413;border-color:#EFD387;font-weight:900}
+.pet-card.lvl-5 .pet-bar i{background:linear-gradient(90deg,#C4EBD6,#8FD9B4)}
+.pet-card.lvl-6 .pet-bar i{background:linear-gradient(90deg,#BFE7E5,#84CFCB)}
+.pet-card.lvl-7 .pet-bar i{background:linear-gradient(90deg,#C2DCF8,#8AB9EE)}
+.pet-card.lvl-8 .pet-bar i{background:linear-gradient(90deg,#DCCDFA,#B79BEF)}
+.pet-card.lvl-9 .pet-bar i{background:linear-gradient(90deg,#CFBEF7,#9E7FE0 45%,#F3D98A 100%)}
+.pet-card.lvl-10 .pet-bar i{background:linear-gradient(90deg,#FFE9A8,#F7C948 45%,#E8A93A 100%)}
+.pet-card.lvl-5 .pet-next{color:#2F7A55}
+.pet-card.lvl-6 .pet-next{color:#2B6E6A}
+.pet-card.lvl-7 .pet-next{color:#2C5B8A}
+.pet-card.lvl-8 .pet-next{color:#66479E}
+.pet-card.lvl-9 .pet-next{color:#503A8C;font-weight:800}
+.pet-card.lvl-10 .pet-next{color:#8A6413;font-weight:900}
+.pet-card.lvl-10 .pet-name{
+  background:linear-gradient(96deg,#B98A2E,#C9A227 40%,#8A5FC0);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.pet-card.lvl-5 .pet-step.is-now img{border-color:#8FD4B0;box-shadow:0 6px 14px rgba(143,212,176,.35)}
+.pet-card.lvl-5 .pet-step.is-now b{color:#2F7A55}
+.pet-card.lvl-6 .pet-step.is-now img{border-color:#84CFCB;box-shadow:0 6px 14px rgba(132,207,203,.35)}
+.pet-card.lvl-6 .pet-step.is-now b{color:#2B6E6A}
+.pet-card.lvl-7 .pet-step.is-now img{border-color:#8AB9EE;box-shadow:0 6px 14px rgba(138,185,238,.35)}
+.pet-card.lvl-7 .pet-step.is-now b{color:#2C5B8A}
+.pet-card.lvl-8 .pet-step.is-now img{border-color:#B79BEF;box-shadow:0 6px 14px rgba(183,155,239,.35)}
+.pet-card.lvl-8 .pet-step.is-now b{color:#66479E}
+.pet-card.lvl-9 .pet-step.is-now img{border-color:#9E7FE0;box-shadow:0 6px 14px rgba(158,127,224,.38)}
+.pet-card.lvl-9 .pet-step.is-now b{color:#503A8C}
+.pet-card.lvl-10 .pet-step.is-now img{border-color:#E8C05A;box-shadow:0 6px 16px rgba(232,192,90,.45)}
+.pet-card.lvl-10 .pet-step.is-now b{color:#8A6413}
+.pet-card.lvl-10 .pet-say{background:#FFFAEC;border-color:#F0DFB4}
+
 @media (max-width:1080px){
   .pet-card{grid-template-columns:minmax(0,118px) minmax(0,1fr);gap:9px 12px}
   .pet-name{font-size:19px}
   .pet-say{font-size:14px;padding:6px 10px}
-  .pet-step img{width:42px;height:42px}
-  .pet-step.is-now img{width:50px;height:50px}
+  .pet-step img{width:30px;height:30px}
+  .pet-step.is-now img{width:38px;height:38px}
 }
 @media (max-width:700px){
   .pets-grid{grid-template-columns:minmax(0,1fr)}
@@ -1301,7 +1366,7 @@ h1,h2,h3,h4,p{margin:0}
   .pet-xp-meta{justify-content:center;text-align:center}
   .pet-say{text-align:center}
   .pet-foot{justify-content:center}
-  .pet-track{gap:7px;margin-top:4px}
+  .pet-track{gap:6px 3px;margin-top:6px}
 }
 
 /* ---------------- 할 일 대상 칩 (우리집 / 유온 / 지온) ---------------- */

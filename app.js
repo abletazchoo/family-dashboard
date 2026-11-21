@@ -69,30 +69,85 @@ const LEVELS = [
   { min: 26, name: '별', emoji: '⭐' }
 ];
 
-/* ---------------- 🐶 우리집 강아지 키우기 (유온·지온 각자 한 마리) ---------------- */
-/* 루틴·할 일을 하나 끝낼 때마다 그 아이의 강아지가 자랍니다.
-   1단계 0 XP · 2단계 30 · 3단계 70 · 4단계(왕관) 120 */
-const PET_MAX_XP = 120;
+/* ---------------- 🐢🐥 우리집 펫 키우기 (유온 거북이 · 지온 병아리) ---------------- */
+/* 루틴·할 일을 하나 끝낼 때마다 그 아이의 펫이 한 단계씩 자랍니다.
+   1단계 알 0 XP · 2단계 부화 20 · 3단계 45 · 4단계 80 · 5단계 120
+   6단계 165 · 7단계 215 · 8단계 270 · 9단계 330 · 10단계(황금 왕관) 400 */
+const PET_MAX_XP = 400;
 const PET_ITEM_XP = 10;      // 루틴·그 아이 할 일 하나 끝낼 때
-const PET_COMMON_XP = 5;     // 우리집 공통 할 일 하나 끝낼 때(두 강아지 모두)
-const PET_STAGE_META = [
-  { level: 1, min: 0, label: '아기', title: '아기 강아지', say: '할 일을 하나씩 끝내면 내가 쑥쑥 자라요!' },
-  { level: 2, min: 30, label: '꼬마', title: '꼬마 강아지', say: '우와, 벌써 이만큼 컸어요! 같이 한 번 더 해 볼까요?' },
-  { level: 3, min: 70, label: '씩씩한', title: '씩씩한 강아지', say: '나는 오늘도 씩씩해요! 멍멍!' },
-  { level: 4, min: 120, label: '슈퍼 왕관', title: '슈퍼 왕관 강아지', say: '반짝반짝 슈퍼 스타! 우리 가족이 최고예요!' }
-];
-/* 첫째(유온)는 크림·카라멜 말티푸, 둘째(지온)는 하얀 비숑. 단계마다 그림이 자라요. */
-const PET_IMAGES = {
-  child1: ['assets/puppy-1.png', 'assets/puppy-2.png', 'assets/puppy-3.png', 'assets/puppy-4.png'],
-  child2: ['assets/puppy2-1.png', 'assets/puppy2-2.png', 'assets/puppy2-3.png', 'assets/puppy2-4.png']
+const PET_COMMON_XP = 5;     // 우리집 공통 할 일 하나 끝낼 때(두 펫 모두)
+const PET_STAGE_MIN = [0, 20, 45, 80, 120, 165, 215, 270, 330, 400];
+
+/* 아이마다 다른 동물이에요. 유온은 거북이, 지온은 병아리 —
+   둘 다 1단계 알에서 시작해 알을 깨고 부화한 뒤 10단계까지 자랍니다. */
+const PET_SPECIES = {
+  child1: {
+    name: '거북이',
+    emoji: '🐢',
+    defaultName: '꼬북이',
+    labels: ['알', '부화', '아장아장', '꼬마', '씩씩한', '모험가', '탐험가', '길잡이', '별빛', '황금 왕관'],
+    titles: [
+      '거북이 알', '갓 태어난 아기 거북이', '아장아장 꼬마 거북이', '꼬마 거북이', '씩씩한 거북이',
+      '모험가 거북이', '탐험가 거북이', '길잡이 거북이', '별빛 거북이', '전설의 황금 왕관 거북이'
+    ],
+    says: [
+      '아직은 알 속에서 꼼지락꼼지락, 할 일을 하나 끝내면 곧 부화할 거예요!',
+      '알을 깨고 나왔어요! 한 번 더 하면 금방 자랄 거예요 🌱',
+      '아장아장, 오늘도 한 걸음 더 자랐어요!',
+      '꼬마 거북이도 할 일은 척척 잘해요!',
+      '나는 오늘도 씩씩해요! 거북거북!',
+      '모험가 거북이 출동! 오늘은 어디로 갈까요?',
+      '스카프랑 배낭까지 챙겼어요, 준비 완료!',
+      '나침반이 가리키는 곳은 언제나 정답이에요!',
+      '별빛 망토를 두르면 어둠도 무섭지 않아요 ✨',
+      '반짝반짝 전설의 거북이! 우리 가족이 최고예요 👑'
+    ]
+  },
+  child2: {
+    name: '병아리',
+    emoji: '🐥',
+    defaultName: '삐약이',
+    labels: ['알', '부화', '아장아장', '꼬마', '씩씩한', '모험가', '나들이', '용감한', '별빛 요정', '황금 왕관'],
+    titles: [
+      '병아리 알', '갓 태어난 아기 병아리', '아장아장 꼬마 병아리', '꼬마 병아리', '씩씩한 병아리',
+      '리본 병아리', '밀짚모자 병아리', '망토 쓴 병아리', '별빛 요정 병아리', '슈퍼 황금 왕관 병아리'
+    ],
+    says: [
+      '아직은 알 속에서 꼼지락꼼지락, 할 일을 하나 끝내면 곧 부화할 거예요!',
+      '삐약! 알을 깨고 나왔어요!',
+      '아장아장, 오늘도 한 걸음 더 자랐어요!',
+      '꼬마 병아리도 할 일은 척척 잘해요!',
+      '나는 오늘도 씩씩해요! 삐약삐약!',
+      '리본 달고 모험 떠나요! 삐약!',
+      '밀짚모자 쓰고 나들이 가는 날이에요 🌼',
+      '용감한 병아리, 오늘도 멋져요!',
+      '별빛 요정 병아리의 반짝 마법! ✨',
+      '삐약! 슈퍼 황금 왕관 병아리 등장! 우리 가족이 최고예요 👑'
+    ]
+  }
 };
-const PET_DEFAULT_NAMES = { child1: '몽실이', child2: '구름이' };
-const PET_LINES = [
-  ['멍멍! 오늘도 잘하고 있어요 🐾', '쓰다듬어 줘서 기분이 좋아요 💕', '같이 힘내요! 내가 응원할게요 ✨', '꼬리 살랑살랑~ 오늘 멋져요!', '한 숨 돌리고 물 한 잔 마셔요 🥛'],
-  ['멍! 간식보다 칭찬이 더 좋아요 🍪', '우리 같이 공놀이 할까요? 🎾', '할 일 하나 끝내고 나랑 놀아요!', '오늘 한 일이 자랑스러워요 🐶', '냄새가 좋아요, 힘내요!'],
-  ['씩씩하게 오늘도 화이팅! 💪', '멍멍! 나는 너를 믿어요 ✨', '한 걸음 더! 우리 같이 가요 🐾', '스카프 어때요? 멋지죠? 😎', '무엇이든 해낼 수 있어요!'],
-  ['슈퍼 왕관 파워! ✨👑', '최고예요, 정말 대단해요! 🌟', '하트 뿅뿅! 사랑해요 💖', '우리집 슈퍼 스타 강아지! 🐕‍🦺', '반짝반짝, 오늘도 완벽해요 ⭐']
-];
+/* 예전에는 두 아이 모두 강아지였어요. 이름을 직접 바꾸지 않았다면 새 동물에 어울리는 이름으로 바꿔 줍니다. */
+const PET_OLD_DEFAULT_NAMES = { child1: '몽실이', child2: '구름이' };
+/* 단계마다 그림이 자라요 — 1단계는 알, 2단계는 알을 깨고 나온 아기 모습. */
+const PET_IMAGES = {
+  child1: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => `assets/turtle-${n}.png`),
+  child2: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => `assets/chick-${n}.png`)
+};
+/* 콕 눌렀을 때 하는 응원 한마디 — 알·아기·모험가·전설 네 묶음이에요. */
+const PET_LINES = {
+  child1: [
+    ['톡톡, 알 속에서 기다리고 있어요 🥚', '조금만 기다려 주세요, 곧 만나요!', '알이 따뜻해서 기분이 좋아요 💛'],
+    ['아장아장 걸음마 중이에요 🐢', '할 일 하나 끝내면 나도 한 뼘 자라요!', '천천히 가도 괜찮아요, 나처럼!', '물가에서 만나요!'],
+    ['모험 갈 준비 완료! 어디로 갈까요? 🎒', '스카프 어때요? 멋지죠? 😎', '나침반은 언제나 네 편이에요 ✨', '같이 가면 멀어도 즐거워요!'],
+    ['별빛 파워! ✨👑', '전설의 거북이가 응원할게요! 🌟', '거북거북, 오늘도 최고예요 💖', '우리집 최고의 거북이! 🐢', '반짝반짝, 오늘도 완벽해요 ⭐']
+  ],
+  child2: [
+    ['톡톡, 알 속에서 기다리고 있어요 🥚', '조금만 기다려 주세요, 곧 만나요!', '따뜻한 알 속이 좋아요 💛'],
+    ['삐약! 걸음마 중이에요 🐥', '할 일 하나 끝내면 나도 한 뼘 자라요!', '같이 삐약삐약 노래해요!', '한 걸음 한 걸음이 신나요!'],
+    ['리본 어때요? 예쁘죠? 🎀', '모험 가는 길이 제일 즐거워요!', '오늘도 용감한 병아리! ✨', '같이 있으면 어디든 좋아요!'],
+    ['별빛 마법 반짝! ✨👑', '슈퍼 병아리가 응원할게요! 🌟', '삐약삐약, 오늘도 최고예요 💖', '우리집 최고의 병아리! 🐥', '반짝반짝, 오늘도 완벽해요 ⭐']
+  ]
+};
 
 /* ---------------- 작은 도우미 ---------------- */
 const $ = (s, r = document) => r.querySelector(s);
@@ -142,7 +197,7 @@ function hourLabel(h) {
 /* ---------------- 상태(데이터) ---------------- */
 /* 캐릭터 그림을 바꿀 때는 AVATAR_VER만 올리면 브라우저 캐시에 남은
    예전 그림 대신 새 그림을 바로 불러옵니다. */
-const AVATAR_VER = '20261120';
+const AVATAR_VER = '20261121';
 function avatarSrc(src) {
   if (typeof src !== 'string' || !src.startsWith('assets/')) return src;
   return src.split('?')[0] + '?v=' + AVATAR_VER;
@@ -184,7 +239,8 @@ const defaultQuests = () => ([
 ]);
 
 function defaultPet(childId) {
-  return { name: PET_DEFAULT_NAMES[childId] || '강아지', xp: 0, hall: 0, awarded: {}, day: todayISO() };
+  const sp = PET_SPECIES[childId] || PET_SPECIES.child1;
+  return { name: sp.defaultName, xp: 0, hall: 0, awarded: {}, day: todayISO() };
 }
 
 function defaultPets() {
@@ -195,7 +251,11 @@ function mergePet(p, childId) {
   const d = defaultPet(childId);
   if (!p || typeof p !== 'object') return d;
   const out = Object.assign({}, d);
-  if (typeof p.name === 'string' && p.name.trim()) out.name = p.name.trim().slice(0, 12);
+  if (typeof p.name === 'string' && p.name.trim()) {
+    const nm = p.name.trim().slice(0, 12);
+    // 예전 강아지 기본 이름을 그대로 둔 경우에만 새 동물 이름으로 바꿉니다(직접 지은 이름은 그대로).
+    out.name = nm === PET_OLD_DEFAULT_NAMES[childId] ? d.name : nm;
+  }
   if (Number.isFinite(p.xp)) out.xp = clamp(Math.round(p.xp), 0, PET_MAX_XP);
   if (Number.isFinite(p.hall)) out.hall = Math.max(0, Math.round(p.hall));
   if (p.awarded && typeof p.awarded === 'object' && !Array.isArray(p.awarded)) {
@@ -207,8 +267,8 @@ function mergePet(p, childId) {
   return out;
 }
 
-/* 예전에는 강아지가 한 마리(state.puppy)였어요. 그 기록은 첫째 강아지가 이어받고
-   둘째 강아지는 새로 태어납니다. 이미 체크한 할 일이 둘째에게 또 들어가지 않도록
+/* 예전에는 두 아이가 한 마리 강아지(state.puppy)를 함께 키웠어요. 그 기록은 첫째 펫이 이어받고
+   둘째 펫은 새로 태어납니다. 이미 체크한 할 일이 둘째에게 또 들어가지 않도록
    할 일 인정 표시는 둘째에게도 옮겨 둡니다. */
 function mergePets(saved) {
   const src = saved || {};
@@ -222,7 +282,7 @@ function mergePets(saved) {
     const old = mergePet(src.puppy, 'child1');
     const migrated = {};
     Object.keys(old.awarded).forEach(k => {
-      // 'r:날짜:아이:항목' → 'r:날짜:항목' (그 아이의 강아지 몫으로)
+      // 'r:날짜:아이:항목' → 'r:날짜:항목' (그 아이 펫 몫으로)
       const m = /^r:(\d{4}-\d{2}-\d{2}):(child1|child2):(.+)$/.exec(k);
       if (m) {
         if (m[2] === 'child1') migrated['r:' + m[1] + ':' + m[3]] = old.awarded[k];
@@ -1156,7 +1216,7 @@ function renderTodos() {
     }
     if (t.who) {
       const mom = memberById(t.who);
-      if (mom) meta.push(`<span class="who${isChild(t.who) ? ' who-pet' : ''}">${isChild(t.who) ? '🐶 ' : ''}${esc(mom.name)}</span>`);
+      if (mom) meta.push(`<span class="who${isChild(t.who) ? ' who-pet' : ''}">${isChild(t.who) ? petEmoji(t.who) + ' ' : ''}${esc(mom.name)}</span>`);
     } else if (todoList === 'todo') {
       meta.push('<span class="who who-home">🏠 우리집</span>');
     }
@@ -1180,7 +1240,7 @@ function renderTodoTargetChips() {
   row.innerHTML = `<span class="target-label">누구</span>
     <button type="button" class="target-chip ${on === '' ? 'is-active' : ''}" data-target="" aria-pressed="${on === ''}">🏠 우리집</button>
     ${kids.map(m => `<button type="button" class="target-chip ${on === m.id ? 'is-active' : ''}" data-target="${m.id}" aria-pressed="${on === m.id}">${esc(m.name)}</button>`).join('')}
-    <span class="target-hint">${on === '' ? '둘 다 +5 XP' : esc(memberName(on)) + ' 강아지 +10 XP'}</span>`;
+    <span class="target-hint">${on === '' ? '둘 다 +5 XP' : esc(memberName(on)) + ' ' + petSpeciesName(on) + ' +10 XP'}</span>`;
 }
 
 /* ---------------- 저녁 메뉴 ---------------- */
@@ -1532,12 +1592,12 @@ function toggleRoutine(childId, itemId) {
 }
 
 /* =========================================================
-   🐶 우리집 강아지 키우기 — 유온·지온 각자 한 마리
-   · 하루 루틴 체크 → 그 아이 강아지 +10 XP (풀면 -10)
-   · 대상이 그 아이인 할 일 체크 → 그 아이 강아지 +10 XP (풀면 -10)
-   · 우리집 공통 할 일 체크 → 두 강아지 모두 +5 XP (풀면 -5)
+   🐢🐥 우리집 펫 키우기 — 유온은 거북이, 지온은 병아리
+   · 하루 루틴 체크 → 그 아이 펫 +10 XP (풀면 -10)
+   · 대상이 그 아이인 할 일 체크 → 그 아이 펫 +10 XP (풀면 -10)
+   · 우리집 공통 할 일 체크 → 두 펫 모두 +5 XP (풀면 -5)
    · 같은 항목을 껐다 켰다 해도 XP가 불어나지 않도록
-     '어느 항목을 이미 인정했는지'를 각 강아지의 awarded 에 적어 둡니다.
+     '어느 항목을 이미 인정했는지'를 각 펫의 awarded 에 적어 둡니다.
    ========================================================= */
 const petSaySticky = { child1: '', child2: '' };
 
@@ -1552,22 +1612,45 @@ function petOf(childId) {
   return state.pets[childId];
 }
 
+function petSpecies(childId) {
+  return PET_SPECIES[childId] || PET_SPECIES.child1;
+}
+function petSpeciesName(childId) { return petSpecies(childId).name; }
+function petEmoji(childId) { return petSpecies(childId).emoji; }
+
+/* 그 아이의 10단계 표 — 단계 이름·응원말·그림이 함께 들어 있어요. */
 function petStages(childId) {
+  const sp = petSpecies(childId);
   const imgs = PET_IMAGES[childId] || PET_IMAGES.child1;
-  return PET_STAGE_META.map((m, i) => Object.assign({}, m, { img: imgs[i] }));
+  return PET_STAGE_MIN.map((min, i) => ({
+    level: i + 1,
+    min: min,
+    label: sp.labels[i] || `Lv.${i + 1}`,
+    title: sp.titles[i] || sp.name,
+    say: sp.says[i] || sp.says[sp.says.length - 1],
+    img: imgs[i] || imgs[imgs.length - 1]
+  }));
 }
 
-function petStageOf(xp) {
-  let st = PET_STAGE_META[0];
-  PET_STAGE_META.forEach(s => { if (xp >= s.min) st = s; });
+function petStageOf(childId, xp) {
+  const stages = petStages(childId);
+  let st = stages[0];
+  stages.forEach(s => { if (xp >= s.min) st = s; });
   return st;
 }
-function petNextStage(st) {
-  return PET_STAGE_META.find(s => s.min > st.min) || null;
+function petNextStage(childId, st) {
+  return petStages(childId).find(s => s.min > st.min) || null;
 }
 function petStageImg(childId, level) {
   const imgs = PET_IMAGES[childId] || PET_IMAGES.child1;
   return imgs[clamp(level, 1, imgs.length) - 1];
+}
+/* 응원 한마디는 단계를 네 묶음으로 나눠 골라요 (알·아기 / 자라는 중 / 모험가 / 전설) */
+function petLineGroup(level) {
+  if (level <= 2) return 0;
+  if (level <= 5) return 1;
+  if (level <= 8) return 2;
+  return 3;
 }
 function petLabel(childId) {
   const m = memberById(childId);
@@ -1592,18 +1675,19 @@ function petSyncAllDays() {
 function petAddXp(childId, delta) {
   const p = petOf(childId);
   if (!delta) return;
-  const top = PET_STAGE_META[PET_STAGE_META.length - 1];
-  const before = petStageOf(p.xp);
+  const stages = petStages(childId);
+  const top = stages[stages.length - 1];
+  const before = petStageOf(childId, p.xp);
   let xp = clamp(p.xp + delta, 0, PET_MAX_XP);
-  // 왕관은 한 번 쓰면 유지: 4단계에 오른 뒤 체크를 풀어도 예전 단계로 돌아가지 않아요.
+  // 황금 왕관은 한 번 쓰면 유지: 10단계에 오른 뒤 체크를 풀어도 예전 단계로 돌아가지 않아요.
   if (before.level === top.level) xp = PET_MAX_XP;
   p.xp = xp;
-  const after = petStageOf(p.xp);
+  const after = petStageOf(childId, p.xp);
   renderPets();
   if (after.level > before.level) petCelebrate(childId, after);
 }
 
-/* key: 'todo:<id>' 또는 'r:<날짜>:<항목>' — 강아지마다 같은 항목은 한 번만 인정 */
+/* key: 'todo:<id>' 또는 'r:<날짜>:<항목>' — 펫마다 같은 항목은 한 번만 인정 */
 function petAward(childId, key, done, amount) {
   const p = petOf(childId);
   if (!key) return;
@@ -1648,7 +1732,7 @@ function petSparkBox(childId) {
 
 function petCelebrate(childId, stage) {
   const p = petOf(childId);
-  toast(`🎉 ${petLabel(childId)} 강아지 ${p.name}, Lv.${stage.level} ${stage.label} 달성!`);
+  toast(`🎉 ${petLabel(childId)} ${petSpeciesName(childId)} ${p.name}, Lv.${stage.level} ${stage.label} 달성!`);
   const card = petCardEl(childId);
   if (card) {
     card.classList.remove('is-popping');
@@ -1657,7 +1741,8 @@ function petCelebrate(childId, stage) {
     setTimeout(() => card.classList.remove('is-popping'), 620);
   }
   petBurst(childId, 18);
-  if (stage.level === PET_STAGE_META[PET_STAGE_META.length - 1].level) {
+  const stages = petStages(childId);
+  if (stage.level === stages[stages.length - 1].level) {
     setTimeout(() => petBurst(childId, 12), 420);
   }
 }
@@ -1693,11 +1778,12 @@ function petHearts(childId, n) {
   }
 }
 
-/* 강아지를 콕 누르면 하트가 뿅 터지고 응원 말풍선이 한마디 합니다. */
+/* 펫을 콕 누르면 하트가 뿅 터지고 응원 말풍선이 한마디 합니다. */
 function petPoke(childId) {
   const p = petOf(childId);
-  const st = petStageOf(p.xp);
-  const pool = PET_LINES[Math.min(st.level, PET_LINES.length) - 1] || PET_LINES[0];
+  const st = petStageOf(childId, p.xp);
+  const lines = PET_LINES[childId] || PET_LINES.child1;
+  const pool = lines[petLineGroup(st.level)] || lines[0];
   let line = pool[Math.floor(Math.random() * pool.length)];
   if (line === petSaySticky[childId] && pool.length > 1) {
     line = pool[(pool.indexOf(line) + 1) % pool.length];
@@ -1724,27 +1810,28 @@ function petPoke(childId) {
 
 function petCardHtml(childId) {
   const p = petOf(childId);
+  const sp = petSpecies(childId);
   const stages = petStages(childId);
-  const st = petStageOf(p.xp);
-  const next = petNextStage(st);
+  const st = petStageOf(childId, p.xp);
+  const next = petNextStage(childId, st);
   const m = memberById(childId);
   const label = petLabel(childId);
-  const top = st.level === PET_STAGE_META[PET_STAGE_META.length - 1].level;
+  const top = st.level === stages[stages.length - 1].level;
 
   let pct = 100;
   if (next) pct = clamp(Math.round(((p.xp - st.min) / (next.min - st.min)) * 100), 0, 100);
   const need = next ? Math.max(1, Math.ceil((next.min - p.xp) / PET_ITEM_XP)) : 0;
   const xpText = next ? `${p.xp} / ${next.min} XP` : `${p.xp} XP · 최고 단계`;
-  const nextText = next ? `다음 단계까지 할 일 ${need}개!` : '최고 단계예요! 새 강아지를 키워 볼까요?';
+  const nextText = next ? `다음 단계까지 할 일 ${need}개!` : `최고 단계예요! 새 ${sp.name}를 키워 볼까요?`;
 
   return `<article class="pet-card lvl-${st.level}" data-pet="${childId}">
       <div class="pet-owner">
         ${m && m.img ? `<img class="pet-owner-avatar" src="${m.img}" alt="${esc(label)}">` : ''}
         <span class="pet-owner-name">${esc(label)}</span>
-        <span class="pet-owner-tag">${esc(label)}의 강아지</span>
+        <span class="pet-owner-tag">${esc(label)}의 ${esc(sp.name)}</span>
         <span class="pet-hall" title="명예의 전당">🏆 ${p.hall}</span>
       </div>
-      <button class="pet-stage" type="button" data-act="poke" aria-label="${esc(label)} 강아지 쓰다듬기">
+      <button class="pet-stage" type="button" data-act="poke" aria-label="${esc(label)} ${esc(sp.name)} 쓰다듬기">
         <img class="pet-img" src="${avatarSrc(petStageImg(childId, st.level))}" alt="${esc(p.name)} · ${esc(st.title)}" draggable="false">
         <span class="pet-sparkles" aria-hidden="true"></span>
       </button>
@@ -1762,8 +1849,8 @@ function petCardHtml(childId) {
           </div>
         </div>
         <p class="pet-say">${esc(petSaySticky[childId] || st.say)}</p>
-        ${top ? `<div class="pet-foot"><span class="pet-badge">👑 슈퍼 왕관 강아지 달성!</span>
-          <button class="soft-btn pink" type="button" data-act="new">새 강아지 키우기</button></div>` : ''}
+        ${top ? `<div class="pet-foot"><span class="pet-badge">👑 ${esc(st.title)} 달성!</span>
+          <button class="soft-btn pink" type="button" data-act="new">새 ${esc(sp.name)} 키우기</button></div>` : ''}
       </div>
       <div class="pet-track" aria-hidden="true">
         ${stages.map(s => {
@@ -1788,11 +1875,12 @@ function renderPets() {
 
 function openPetNameModal(childId) {
   const p = petOf(childId);
-  openModal('강아지 이름 바꾸기', `
-    <p class="hint" style="margin:0 0 12px">${esc(petLabel(childId))}의 강아지를 뭐라고 부를까요?</p>
+  const sp = petSpecies(childId);
+  openModal(`${sp.name} 이름 바꾸기`, `
+    <p class="hint" style="margin:0 0 12px">${esc(petLabel(childId))}의 ${esc(sp.name)}를 뭐라고 부를까요?</p>
     <form id="petNameForm">
       <label class="field"><span>이름</span>
-        <input name="petName" maxlength="12" value="${esc(p.name)}" placeholder="예: 몽실이">
+        <input name="petName" maxlength="12" value="${esc(p.name)}" placeholder="예: ${esc(sp.defaultName)}">
       </label>
       <div class="modal-actions">
         <span class="spacer"></span>
@@ -1808,7 +1896,7 @@ function openPetNameModal(childId) {
       p.name = v;
       petSaySticky[childId] = '';
       save(); renderPets(); closeModal();
-      toast(`이제 ${v}라고 불러요 🐶`);
+      toast(`이제 ${v}라고 불러요 ${petEmoji(childId)}`);
     };
     form.addEventListener('submit', e => { e.preventDefault(); submit(); });
     form.querySelector('[data-act=save]').onclick = submit;
@@ -1818,18 +1906,20 @@ function openPetNameModal(childId) {
 
 function openNewPetModal(childId) {
   const p = petOf(childId);
+  const sp = petSpecies(childId);
   confirmModal(
-    '새 강아지 키우기',
-    `${petLabel(childId)}의 ${p.name}는 명예의 전당에 남고, 새 아기 강아지가 Lv.1부터 다시 자라요. 지금까지의 명예의 전당: ${p.hall}마리. 계속할까요?`,
-    '새 강아지 키우기',
+    `새 ${sp.name} 키우기`,
+    `${petLabel(childId)}의 ${p.name}는 명예의 전당에 남고, 새 ${sp.name}가 Lv.1 알부터 다시 자라요. 지금까지의 명예의 전당: ${p.hall}마리. 계속할까요?`,
+    `새 ${sp.name} 키우기`,
     () => {
       p.hall = (p.hall || 0) + 1;
       p.xp = 0;
       p.awarded = {};
       p.day = todayISO();
+      p.name = sp.defaultName;
       petSaySticky[childId] = '';
       save(); renderPets(); petBurst(childId, 14);
-      toast(`🏆 ${p.name}가 명예의 전당에 들어갔어요! ${petLabel(childId)}의 새 강아지가 태어났어요 🐶`);
+      toast(`🏆 ${p.name}가 명예의 전당에 들어갔어요! ${petLabel(childId)}의 새 ${sp.name}가 알에서 기다려요 ${sp.emoji}`);
     }
   );
 }
@@ -2865,7 +2955,7 @@ function bindEvents() {
     }
   });
 
-  // 🐶 강아지 키우기 (유온·지온 각자 한 마리)
+  // 🐢🐥 펫 키우기 (유온 거북이 · 지온 병아리)
   const petsGrid = $('#petsGrid');
   if (petsGrid) {
     petsGrid.addEventListener('click', e => {
@@ -2900,7 +2990,7 @@ function bindEvents() {
 
 /* 지금 화면의 배포 표식입니다. app.js를 고쳐 올릴 때 이 값을 함께 올려 두면
    켜 둔 태블릿이 새 배포를 알아채고 조용히 알려 줍니다. */
-const BUILD = '2026-11-20-6';
+const BUILD = '2026-11-21-1';
 const WAKE_PREF_KEY = 'urijip-wake-v1';
 const WEATHER_REFRESH_MS = 30 * 60 * 1000;   // 날씨·미세먼지 30분마다
 const VERSION_CHECK_MS = 60 * 60 * 1000;     // 새 배포 확인 1시간마다
