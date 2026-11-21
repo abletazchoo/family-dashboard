@@ -1822,7 +1822,7 @@ function petCardHtml(childId) {
   if (next) pct = clamp(Math.round(((p.xp - st.min) / (next.min - st.min)) * 100), 0, 100);
   const need = next ? Math.max(1, Math.ceil((next.min - p.xp) / PET_ITEM_XP)) : 0;
   const xpText = next ? `${p.xp} / ${next.min} XP` : `${p.xp} XP · 최고 단계`;
-  const nextText = next ? `다음 단계까지 할 일 ${need}개!` : `최고 단계예요! 새 ${sp.name}를 키워 볼까요?`;
+  const nextText = next ? `다음 단계까지 할 일 ${need}개!` : `새 ${sp.name}를 키워 볼까요?`;
 
   return `<article class="pet-card lvl-${st.level}" data-pet="${childId}">
       <div class="pet-owner">

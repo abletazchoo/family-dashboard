@@ -1325,7 +1325,7 @@ h1,h2,h3,h4,p{margin:0}
 .pet-card.lvl-9 .pet-next{color:#503A8C;font-weight:800}
 .pet-card.lvl-10 .pet-next{color:#8A6413;font-weight:900}
 .pet-card.lvl-10 .pet-name{
-  background:linear-gradient(96deg,#B98A2E,#C9A227 40%,#8A5FC0);
+  background:linear-gradient(96deg,#A9761E,#B98A2E 40%,#6E4A9E);
   -webkit-background-clip:text;background-clip:text;color:transparent;
 }
 .pet-card.lvl-5 .pet-step.is-now img{border-color:#8FD4B0;box-shadow:0 6px 14px rgba(143,212,176,.35)}
