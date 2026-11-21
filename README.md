@@ -37,10 +37,12 @@
 | Lv.4 꼬마 | 80 ~ 119 | `assets/turtle-4.png` | `assets/chick-4.png` |
 | Lv.5 씩씩한 | 120 ~ 164 | `assets/turtle-5.png` | `assets/chick-5.png` |
 | Lv.6 모험가 | 165 ~ 214 | `assets/turtle-6.png` | `assets/chick-6.png` |
-| Lv.7 탐험가·나들이 | 215 ~ 269 | `assets/turtle-7.png` | `assets/chick-7.png` |
-| Lv.8 길잡이·용감한 | 270 ~ 329 | `assets/turtle-8.png` | `assets/chick-8.png` |
+| Lv.7 탐험가 | 215 ~ 269 | `assets/turtle-7.png` | `assets/chick-7.png` |
+| Lv.8 길잡이 | 270 ~ 329 | `assets/turtle-8.png` | `assets/chick-8.png` |
 | Lv.9 별빛 | 330 ~ 399 | `assets/turtle-9.png` | `assets/chick-9.png` |
 | Lv.10 황금 왕관 | 400 ~ | `assets/turtle-10.png` | `assets/chick-10.png` |
+
+> 지온 병아리는 6~9단계에서 리본·핑크 장식 대신 **민트 스카프 → 탐험모자 → 책가방 → 세이지 망토**로 자라는 담백한 디자인이에요(배경도 버터옐로우·민트·하늘·크림으로 이어집니다).
 
 - **하루 루틴**: 첫째(유온) 루틴을 체크하면 거북이 +10 XP, 둘째(지온) 루틴을 체크하면 병아리 +10 XP(풀면 -10, 오늘 날짜만 인정).
 - **오늘 할 일**: 추가할 때 대상 칩 **🏠 우리집 / 유온 / 지온**(기본 우리집)을 고릅니다.
