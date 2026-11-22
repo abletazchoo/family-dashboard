@@ -390,6 +390,8 @@ h1,h2,h3,h4,p{margin:0}
   box-shadow:0 4px 12px rgba(90,66,50,.22);transition:.15s ease;
 }
 .add-btn:hover{transform:translateY(-1px)}
+/* 장보기: 입력창 + ＋ 버튼만 있는 한 줄 */
+.card-shop .add-row{grid-template-columns:minmax(0,1fr) 38px;grid-template-areas:"text add"}
 .check-list{display:flex;flex-direction:column;max-height:260px;overflow-y:auto}
 .check-item{
   display:flex;align-items:flex-start;gap:9px;
@@ -1093,7 +1095,7 @@ h1,h2,h3,h4,p{margin:0}
 }
 
 /* =========================================================
-   🐢🐥 우리집 펫 키우기 — 유온 거북이 · 지온 병아리 (2026-11-21)
+   🐹🦉 우리집 펫 키우기 — 유온 햄스터 · 지온 올빼미 (2026-11-22)
    ========================================================= */
 .card-pets{
   position:relative;

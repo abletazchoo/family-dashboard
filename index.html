@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>보통날의 우리집 · 가족 대시보드</title>
-<meta name="description" content="우리 가족의 하루를 한눈에 담는 따뜻한 가족 대시보드. 오늘의 시간표와 급식, 캘린더, 날씨, 할 일, 가족 상태, 우체통까지.">
+<meta name="description" content="우리 가족의 하루를 한눈에 담는 따뜻한 가족 대시보드. 오늘의 시간표와 급식, 캘린더, 날씨, 장보기, 가족 상태, 우체통까지.">
 <meta name="theme-color" content="#FDF6EC">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%23FDF1E5'/%3E%3Cpath d='M22 52 50 28l28 24' fill='none' stroke='%235A4232' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M31 50v24h38V50' fill='%23F7C6D3' stroke='%235A4232' stroke-width='6' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="우리집">
 <link rel="manifest" href="manifest.json">
-<link rel="stylesheet" href="style.css?v=2026-11-21-4">
+<link rel="stylesheet" href="style.css?v=2026-11-22-1">
 </head>
 <body>
 <div class="paper-grain" aria-hidden="true"></div>
@@ -81,11 +81,11 @@
         </section>
       </div>
 
-      <!-- 🐢🐥 우리집 펫 키우기 (유온 거북이 · 지온 병아리) -->
+      <!-- 🐹🦉 우리집 펫 키우기 (유온 햄스터 · 지온 올빼미) -->
       <section class="card card-pets" id="cardPets" aria-label="우리집 펫 키우기">
         <div class="pets-head">
-          <h2 class="card-title"><span class="ico">🐢</span> 우리집 펫 키우기 <span class="pet-head-badge">🐢 유온 · 🐥 지온</span></h2>
-          <p class="pets-hint">하루 루틴·할 일을 끝내면 알에서 시작한 펫이 10단계까지 쑥쑥 자라요. 펫을 콕 누르면 응원해 줘요!</p>
+          <h2 class="card-title"><span class="ico">🐹</span> 우리집 펫 키우기 <span class="pet-head-badge">🐹 유온 · 🦉 지온</span></h2>
+          <p class="pets-hint">매일 자정(00:00)이 지나면 알에서 시작한 펫이 10단계까지 한 단계씩 자라요. 펫을 콕 누르면 응원해 줘요!</p>
         </div>
         <div class="pets-grid" id="petsGrid"></div>
       </section>
@@ -122,22 +122,17 @@
           </section>
 
           <div class="pair">
-            <!-- 할 일 · 장보기 -->
-            <section class="card card-todo">
+            <!-- 장보기 -->
+            <section class="card card-todo card-shop">
               <div class="card-head">
-                <h2 class="card-title"><span class="ico">📝</span> 할 일 · 장보기</h2>
+                <h2 class="card-title"><span class="ico">🛒</span> 장보기</h2>
+                <span class="mini-note" id="shopNote"></span>
               </div>
-              <div class="seg" id="todoTabs" role="tablist" aria-label="목록 전환">
-                <button class="seg-btn is-active" type="button" role="tab" aria-selected="true" data-list="todo">✓ 할 일 <b id="todoCount">0</b></button>
-                <button class="seg-btn" type="button" role="tab" aria-selected="false" data-list="shopping">🛒 장보기 <b id="shopCount">0</b></button>
-              </div>
-              <form class="add-row" id="todoForm" autocomplete="off">
-                <input id="todoInput" type="text" maxlength="50" placeholder="할 일 추가" aria-label="할 일 내용">
-                <input id="todoDue" type="date" class="mini-date" aria-label="마감일">
+              <form class="add-row" id="shopForm" autocomplete="off">
+                <input id="shopInput" type="text" maxlength="40" placeholder="살 것 추가 (예: 우유)" aria-label="살 것">
                 <button class="add-btn" type="submit" aria-label="추가">＋</button>
-                <div class="target-row" id="todoTargetRow" role="group" aria-label="누구 할 일인가요"></div>
               </form>
-              <ul class="check-list" id="todoList"></ul>
+              <ul class="check-list" id="shopList"></ul>
             </section>
 
             <!-- 오늘의 저녁 -->
@@ -311,6 +306,6 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="app.js?v=2026-11-21-4"></script>
+<script src="app.js?v=2026-11-22-1"></script>
 </body>
 </html>
