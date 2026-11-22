@@ -72,7 +72,7 @@ const LEVELS = [
 /* ---------------- 🐹🦉 우리집 펫 키우기 (유온 햄스터 · 지온 올빼미) ---------------- */
 /* 날이 바뀌는 순간(매일 자정 00:00 KST)마다 한 단계씩 자랍니다. 할 일·루틴과는 상관없어요.
    startedAt(처음 시작한 날, KST 기준 YYYY-MM-DD)에서 오늘이 며칠째인지로 단계를 정합니다.
-   · 첫날 1단계 알 · 다음 날 2단계 부화 · … · 9일 뒤 10단계(황금 왕관), 그 뒤로는 10단계 그대로 */
+   · 첫날 1단계(햄스터는 갓 태어난 아기 · 올빼미는 알) · 다음 날 2단계 · … · 9일 뒤 10단계(황금 왕관), 그 뒤로는 10단계 그대로 */
 const PET_MAX_LEVEL = 10;
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;   // 한국은 서머타임이 없어 늘 +9시간이에요.
 
@@ -90,21 +90,26 @@ function dayGapISO(a, b) {
   return Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 86400000);
 }
 
-/* 아이마다 다른 동물이에요. 유온은 햄스터, 지온은 올빼미 — 둘 다 1단계 알에서 시작해
-   알을 깨고 부화한 뒤 자정마다 한 단계씩 자라 10단계 황금 왕관까지 갑니다. */
+/* 아이마다 다른 동물이에요. 유온은 햄스터, 지온은 올빼미.
+   · 햄스터는 포유류라 알을 낳지 않아요 — 1단계는 둥지에서 갓 태어난 아기, 2단계는 둥지 밖으로
+     얼굴을 내미는 뽀시래기로 시작해 자정마다 한 단계씩 자라 10단계 황금 왕관까지 갑니다.
+   · 올빼미는 1단계 알 · 2단계 부화 그대로예요.
+   startWord: 1단계를 부르는 말(다시 시작 안내에 씀) · waitLine: 새 펫이 기다리는 곳 */
 const PET_SPECIES = {
   child1: {
     name: '햄스터',
     emoji: '🐹',
     defaultName: '햄찌',
-    labels: ['알', '부화', '아장아장', '꼬마', '씩씩한', '모험가', '탐험가', '길잡이', '별빛', '황금 왕관'],
+    startWord: '아기',
+    waitLine: '따뜻한 둥지에서 기다려요',
+    labels: ['아기', '뽀시래기', '아장아장', '꼬마', '씩씩한', '모험가', '탐험가', '길잡이', '별빛', '황금 왕관'],
     titles: [
-      '햄스터 알', '갓 태어난 아기 햄스터', '아장아장 꼬마 햄스터', '꼬마 햄스터', '씩씩한 햄스터',
+      '갓 태어난 아기 햄스터', '뽀시래기 아기 햄스터', '아장아장 꼬마 햄스터', '꼬마 햄스터', '씩씩한 햄스터',
       '모험가 햄스터', '탐험가 햄스터', '길잡이 햄스터', '별빛 햄스터', '전설의 황금 왕관 햄스터'
     ],
     says: [
-      '아직은 알 속에서 꼼지락꼼지락, 내일 자정이 지나면 알을 깨고 나와요!',
-      '알을 깨고 나왔어요! 내일 자정에 또 한 뼘 자랄 거예요 🌱',
+      '아직 눈도 못 뜬 갓 태어난 아기예요. 따뜻한 둥지에서 하루 종일 쿨쿨 자요 💤',
+      '둥지 밖으로 얼굴을 쏙 내밀었어요! 내일 자정에 또 한 뼘 자랄 거예요 🌱',
       '아장아장, 오늘도 한 걸음 더 자랐어요!',
       '꼬마 햄스터, 하루하루가 신나요!',
       '나는 오늘도 씩씩해요! 햄햄!',
@@ -119,6 +124,8 @@ const PET_SPECIES = {
     name: '올빼미',
     emoji: '🦉',
     defaultName: '부엉이',
+    startWord: '알',
+    waitLine: '알에서 기다려요',
     labels: ['알', '부화', '아장아장', '꼬마', '씩씩한', '모험가', '탐험가', '길잡이', '별빛', '황금 왕관'],
     titles: [
       '올빼미 알', '갓 태어난 아기 올빼미', '아장아장 꼬마 올빼미', '꼬마 올빼미', '씩씩한 올빼미',
@@ -144,15 +151,16 @@ const PET_OLD_DEFAULT_NAMES = {
   child1: ['몽실이', '꼬북이'],
   child2: ['구름이', '삐약이']
 };
-/* 단계마다 그림이 자라요 — 1단계는 알, 2단계는 알을 깨고 나온 아기 모습. */
+/* 단계마다 그림이 자라요 — 햄스터는 1단계 둥지 속 갓 태어난 아기, 2단계 둥지 밖으로 얼굴을 내민
+   뽀시래기이고, 올빼미는 1단계 알, 2단계 알을 깨고 나온 아기 모습이에요. */
 const PET_IMAGES = {
   child1: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => `assets/hamster-${n}.png`),
   child2: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => `assets/owl-${n}.png`)
 };
-/* 콕 눌렀을 때 하는 응원 한마디 — 알·아기·모험가·전설 네 묶음이에요. */
+/* 콕 눌렀을 때 하는 응원 한마디 — 태어난 지 얼마 안 된 때(1·2단계)·자라는 중·모험가·전설 네 묶음이에요. */
 const PET_LINES = {
   child1: [
-    ['톡톡, 알 속에서 기다리고 있어요 🥚', '조금만 기다려 주세요, 내일 자정에 만나요!', '알이 따뜻해서 기분이 좋아요 💛'],
+    ['꼬물꼬물, 둥지가 포근해서 기분 좋아요 💛', '아직은 잠이 솔솔 와요 💤', '자정이 지나면 또 한 뼘 자랄 거예요!'],
     ['아장아장 걸음마 중이에요 🐹', '자정이 지나면 나도 한 뼘 자라요!', '천천히 가도 괜찮아요, 나처럼!'],
     ['모험 갈 준비 완료! 어디로 갈까요? 🎒', '배낭 어때요? 든든하죠? 😎', '나침반은 언제나 네 편이에요 ✨', '같이 가면 멀어도 즐거워요!'],
     ['별빛 파워! ✨👑', '황금 왕관 햄스터가 응원할게요! 🌟', '햄햄, 오늘도 최고예요 💖', '우리집 최고의 햄스터! 🐹', '반짝반짝, 오늘도 완벽해요 ⭐']
@@ -220,7 +228,7 @@ function hourLabel(h) {
 /* ---------------- 상태(데이터) ---------------- */
 /* 캐릭터 그림을 바꿀 때는 AVATAR_VER만 올리면 브라우저 캐시에 남은
    예전 그림 대신 새 그림을 바로 불러옵니다. */
-const AVATAR_VER = '20261122a';
+const AVATAR_VER = '20261122b';
 function avatarSrc(src) {
   if (typeof src !== 'string' || !src.startsWith('assets/')) return src;
   return src.split('?')[0] + '?v=' + AVATAR_VER;
@@ -280,7 +288,7 @@ function mergePet(p, childId) {
     out.name = (PET_OLD_DEFAULT_NAMES[childId] || []).includes(nm) ? d.name : nm;
   }
   if (Number.isFinite(p.hall)) out.hall = Math.max(0, Math.round(p.hall));
-  // startedAt이 있으면 그 날부터 자란 단계를 그대로 잇습니다. 없으면(예전 XP 판) 오늘부터 Lv.1 알.
+  // startedAt이 있으면 그 날부터 자란 단계를 그대로 잇습니다. 없으면(예전 XP 판) 오늘부터 Lv.1.
   if (typeof p.startedAt === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(p.startedAt)) out.startedAt = p.startedAt;
   return out;
 }
@@ -1562,7 +1570,7 @@ function toggleRoutine(childId, itemId) {
    · 성장은 오직 날짜로만 정해져요. startedAt(시작한 날, KST)에서
      오늘이 며칠째인지 세어 매일 자정 00:00 KST에 한 단계씩 자랍니다.
    · 할 일·루틴 체크와는 아무 상관이 없어요(그래서 XP도 없앴습니다).
-   · 1단계 알 → 2단계 부화 → … → 10단계 황금 왕관, 그 뒤로는 그대로.
+   · 햄스터 1단계 아기 → 2단계 뽀시래기 → …, 올빼미 1단계 알 → 2단계 부화 → … → 10단계 황금 왕관.
    ========================================================= */
 const petSaySticky = { child1: '', child2: '' };
 let petMidnightTimer = null;
@@ -1618,7 +1626,7 @@ function petStageImg(childId, level) {
   const imgs = PET_IMAGES[childId] || PET_IMAGES.child1;
   return imgs[clamp(level, 1, imgs.length) - 1];
 }
-/* 응원 한마디는 단계를 네 묶음으로 나눠 골라요 (알·아기 / 자라는 중 / 모험가 / 전설) */
+/* 응원 한마디는 단계를 네 묶음으로 나눠 골라요 (태어난 지 얼마 안 된 때 / 자라는 중 / 모험가 / 전설) */
 function petLineGroup(level) {
   if (level <= 2) return 0;
   if (level <= 5) return 1;
@@ -1825,7 +1833,7 @@ function openPetNameModal(childId) {
       </div>
     </form>
     <div class="pet-reset-row">
-      <button type="button" class="mini-btn" data-act="restart">처음(알)부터 다시 시작</button>
+      <button type="button" class="mini-btn" data-act="restart">${sp.startWord === '알' ? '처음(알)부터 다시 시작' : 'Lv.1부터 다시 시작'}</button>
     </div>`, body => {
     const form = body.querySelector('#petNameForm');
     const restart = body.querySelector('[data-act=restart]');
@@ -1845,24 +1853,25 @@ function openPetNameModal(childId) {
   });
 }
 
-/* 어느 단계에서든 그 펫을 오늘부터 다시 Lv.1 알로 키웁니다.
+/* 어느 단계에서든 그 펫을 오늘부터 다시 Lv.1(햄스터는 아기 · 올빼미는 알)로 키웁니다.
    이름과 명예의 전당(지난 펫 기록)은 그대로 두고 시작한 날만 오늘(KST)로 맞춰요. */
 function openPetResetModal(childId) {
   const p = petOf(childId);
+  const sp = petSpecies(childId);
   const level = petLevel(childId);
   const st = petStageOf(childId, level);
   const nowText = level === 1
-    ? '지금 알 단계라서 시작한 날만 오늘로 맞추면 처음 상태가 돼요.'
-    : `지금 Lv.${level} ${st.label}인데, 오늘부터 다시 알에서 자라요.`;
+    ? `지금 Lv.1 ${sp.startWord}라서 시작한 날만 오늘로 맞추면 처음 상태가 돼요.`
+    : `지금 Lv.${level} ${st.label}인데, 오늘부터 다시 ${sp.startWord}부터 자라요.`;
   confirmModal(
-    `${p.name}${josa(p.name, '을', '를')} 알부터 다시 시작할까요?`,
+    `${p.name}${josa(p.name, '을', '를')} ${sp.startWord}부터 다시 시작할까요?`,
     `${petLabel(childId)}의 ${p.name} — ${nowText} 이름과 명예의 전당 기록(🏆 ${p.hall})은 그대로 남아요.`,
-    '알부터 다시 시작',
+    `${sp.startWord}부터 다시 시작`,
     () => {
       p.startedAt = kstISO();
       petSaySticky[childId] = '';
       save(); renderPets(); petBurst(childId, 10);
-      toast(`${petEmoji(childId)} ${p.name}${josa(p.name, '이', '가')} 오늘부터 다시 알에서 자라요`);
+      toast(`${petEmoji(childId)} ${p.name}${josa(p.name, '이', '가')} 오늘부터 다시 ${sp.startWord}부터 자라요`);
     },
     true
   );
@@ -1873,7 +1882,7 @@ function openNewPetModal(childId) {
   const sp = petSpecies(childId);
   confirmModal(
     `새 ${sp.name} 키우기`,
-    `${petLabel(childId)}의 ${p.name}는 명예의 전당에 남고, 새 ${sp.name}가 오늘부터 Lv.1 알에서 자라요. 지금까지의 명예의 전당: ${p.hall}마리. 계속할까요?`,
+    `${petLabel(childId)}의 ${p.name}는 명예의 전당에 남고, 새 ${sp.name}가 오늘부터 Lv.1 ${sp.startWord}부터 자라요. 지금까지의 명예의 전당: ${p.hall}마리. 계속할까요?`,
     `새 ${sp.name} 키우기`,
     () => {
       p.hall = (p.hall || 0) + 1;
@@ -1881,7 +1890,7 @@ function openNewPetModal(childId) {
       p.name = sp.defaultName;
       petSaySticky[childId] = '';
       save(); renderPets(); petBurst(childId, 14);
-      toast(`🏆 ${p.name}${josa(p.name, '이', '가')} 명예의 전당에 들어갔어요! ${petLabel(childId)}의 새 ${sp.name}가 알에서 기다려요 ${sp.emoji}`);
+      toast(`🏆 ${p.name}${josa(p.name, '이', '가')} 명예의 전당에 들어갔어요! ${petLabel(childId)}의 새 ${sp.name}가 ${sp.waitLine} ${sp.emoji}`);
     }
   );
 }
@@ -2928,7 +2937,7 @@ function bindEvents() {
 
 /* 지금 화면의 배포 표식입니다. app.js를 고쳐 올릴 때 이 값을 함께 올려 두면
    켜 둔 태블릿이 새 배포를 알아채고 조용히 알려 줍니다. */
-const BUILD = '2026-11-22-2';
+const BUILD = '2026-11-22-3';
 const WAKE_PREF_KEY = 'urijip-wake-v1';
 const WEATHER_REFRESH_MS = 30 * 60 * 1000;   // 날씨·미세먼지 30분마다
 const VERSION_CHECK_MS = 60 * 60 * 1000;     // 새 배포 확인 1시간마다
