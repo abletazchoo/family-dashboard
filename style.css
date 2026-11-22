@@ -1243,7 +1243,7 @@ h1,h2,h3,h4,p{margin:0}
 }
 .feed-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 7px 16px rgba(226,178,90,.4)}
 .feed-btn:active:not(:disabled){transform:scale(.97)}
-.feed-btn:disabled{background:#F4EBDD;color:#BDAC99;box-shadow:none;cursor:not-allowed}
+.feed-btn:disabled{background:#F1E4CF;color:#A28A6E;box-shadow:none;cursor:not-allowed}
 .feed-done{
   display:inline-flex;align-items:center;gap:4px;
   font-family:var(--font-title);font-size:12.5px;color:#8A6413;
