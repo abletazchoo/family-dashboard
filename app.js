@@ -177,6 +177,13 @@ const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); r
 const nextDOW = (d, dow) => { const x = new Date(d); let i = 0; while (x.getDay() !== dow && i < 7) { x.setDate(x.getDate() + 1); i++; } return x; };
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+/* 받침에 따라 조사를 골라요 — josa('멜론','을','를') → '을' */
+function josa(word, withBatchim, withoutBatchim) {
+  const s = String(word == null ? '' : word);
+  const c = s.charCodeAt(s.length - 1);
+  if (!(c >= 0xAC00 && c <= 0xD7A3)) return withoutBatchim;
+  return ((c - 0xAC00) % 28) ? withBatchim : withoutBatchim;
+}
 
 function relTime(ts) {
   if (!ts) return '';
@@ -1787,8 +1794,10 @@ function schedulePetMidnight() {
 
 function petMidnightTick() {
   if (!appStarted) { schedulePetMidnight(); return; }
-  const grew = petIds().map(id => ({ id, level: petLevel(id), name: petOf(id).name }))
-    .filter(x => x.level > 1);
+  const grew = petIds().map(id => {
+    const raw = dayGapISO(petStartISO(id), kstISO());   // 오늘이 몇 일째인지(캡 없이)
+    return { id, level: petLevel(id), name: petOf(id).name, grew: raw >= 1 && raw <= PET_MAX_LEVEL - 1 };
+  }).filter(x => x.grew);
   const prev = liveDate;
   const today = todayISO();
   if (today !== prev) { liveDate = today; refreshForNewDay(prev, grew.length > 0); }
@@ -1846,14 +1855,14 @@ function openPetResetModal(childId) {
     ? '지금 알 단계라서 시작한 날만 오늘로 맞추면 처음 상태가 돼요.'
     : `지금 Lv.${level} ${st.label}인데, 오늘부터 다시 알에서 자라요.`;
   confirmModal(
-    `${p.name}를 알부터 다시 시작할까요?`,
+    `${p.name}${josa(p.name, '을', '를')} 알부터 다시 시작할까요?`,
     `${petLabel(childId)}의 ${p.name} — ${nowText} 이름과 명예의 전당 기록(🏆 ${p.hall})은 그대로 남아요.`,
     '알부터 다시 시작',
     () => {
       p.startedAt = kstISO();
       petSaySticky[childId] = '';
       save(); renderPets(); petBurst(childId, 10);
-      toast(`${petEmoji(childId)} ${p.name}가 오늘부터 다시 알에서 자라요`);
+      toast(`${petEmoji(childId)} ${p.name}${josa(p.name, '이', '가')} 오늘부터 다시 알에서 자라요`);
     },
     true
   );
@@ -1872,7 +1881,7 @@ function openNewPetModal(childId) {
       p.name = sp.defaultName;
       petSaySticky[childId] = '';
       save(); renderPets(); petBurst(childId, 14);
-      toast(`🏆 ${p.name}가 명예의 전당에 들어갔어요! ${petLabel(childId)}의 새 ${sp.name}가 알에서 기다려요 ${sp.emoji}`);
+      toast(`🏆 ${p.name}${josa(p.name, '이', '가')} 명예의 전당에 들어갔어요! ${petLabel(childId)}의 새 ${sp.name}가 알에서 기다려요 ${sp.emoji}`);
     }
   );
 }
@@ -2919,7 +2928,7 @@ function bindEvents() {
 
 /* 지금 화면의 배포 표식입니다. app.js를 고쳐 올릴 때 이 값을 함께 올려 두면
    켜 둔 태블릿이 새 배포를 알아채고 조용히 알려 줍니다. */
-const BUILD = '2026-11-22-1';
+const BUILD = '2026-11-22-2';
 const WAKE_PREF_KEY = 'urijip-wake-v1';
 const WEATHER_REFRESH_MS = 30 * 60 * 1000;   // 날씨·미세먼지 30분마다
 const VERSION_CHECK_MS = 60 * 60 * 1000;     // 새 배포 확인 1시간마다
