@@ -1742,7 +1742,9 @@ function petCardHtml(childId) {
         </div>
         <div class="pet-feed">
           <span class="pet-coupon" title="후추가 준 먹이쿠폰 중 아직 안 쓴 개수">🎟️ 먹이쿠폰 <b data-coupon-count="${childId}">${fs.coupons}</b>개</span>
-          <button class="feed-btn" type="button" data-act="feed" ${fs.canFeed ? '' : 'disabled'} aria-label="${esc(p.name)} 먹이 주기">🍽️ 먹이 주기</button>
+          ${fs.top
+            ? '<span class="feed-done">✅ 먹이 주기 완료</span>'
+            : `<button class="feed-btn" type="button" data-act="feed" ${fs.canFeed ? '' : 'disabled'} aria-label="${esc(p.name)} 먹이 주기">🍽️ 먹이 주기</button>`}
         </div>
         <p class="pet-feed-hint">${esc(hint)}</p>
         <p class="pet-say">${esc(petSaySticky[childId] || st.say)}</p>
@@ -2954,7 +2956,7 @@ function bindEvents() {
 
 /* 지금 화면의 배포 표식입니다. app.js를 고쳐 올릴 때 이 값을 함께 올려 두면
    켜 둔 태블릿이 새 배포를 알아채고 조용히 알려 줍니다. */
-const BUILD = '2026-11-22-4';
+const BUILD = '2026-11-22-5';
 const WAKE_PREF_KEY = 'urijip-wake-v1';
 const WEATHER_REFRESH_MS = 30 * 60 * 1000;   // 날씨·미세먼지 30분마다
 const VERSION_CHECK_MS = 60 * 60 * 1000;     // 새 배포 확인 1시간마다

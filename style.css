@@ -1244,6 +1244,12 @@ h1,h2,h3,h4,p{margin:0}
 .feed-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 7px 16px rgba(226,178,90,.4)}
 .feed-btn:active:not(:disabled){transform:scale(.97)}
 .feed-btn:disabled{background:#F4EBDD;color:#BDAC99;box-shadow:none;cursor:not-allowed}
+.feed-done{
+  display:inline-flex;align-items:center;gap:4px;
+  font-family:var(--font-title);font-size:12.5px;color:#8A6413;
+  background:linear-gradient(160deg,#FFF3CD,#F9E2A0);border:1px solid #EFD387;
+  border-radius:12px;padding:6px 11px;white-space:nowrap;
+}
 .pet-feed-hint{margin:0;font-size:11px;line-height:1.45;color:#A48F7C;font-weight:700}
 .pet-card.lvl-10 .pet-feed-hint{color:#8A6413}
 .pet-say{
