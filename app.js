@@ -70,29 +70,17 @@ const LEVELS = [
 ];
 
 /* ---------------- 🐹🦉 우리집 펫 키우기 (유온 햄스터 · 지온 올빼미) ---------------- */
-/* 날이 바뀌는 순간(매일 자정 00:00 KST)마다 한 단계씩 자랍니다. 할 일·루틴과는 상관없어요.
-   startedAt(처음 시작한 날, KST 기준 YYYY-MM-DD)에서 오늘이 며칠째인지로 단계를 정합니다.
-   · 첫날 1단계(햄스터는 갓 태어난 아기 · 올빼미는 알) · 다음 날 2단계 · … · 9일 뒤 10단계(황금 왕관), 그 뒤로는 10단계 그대로 */
+/* 먹이를 주면 자랍니다. 자정이 지나도 저절로 자라지 않아요.
+   · 먹이쿠폰은 엄마가 후추(AI)에게 말해서 받아요. 후추가 클라우드 동기화(urijip-sync)로
+     feedGranted를 올려 주면 그때만 쿠폰이 늘어납니다. 이 화면에는 쿠폰을 만들거나 늘리는 곳이 없어요.
+   · 🍽️ 먹이 주기 1번 = 쿠폰 1개 사용(feedUsed +1) · 먹이 5개(FEED_PER_LEVEL)를 먹으면 한 레벨 상승.
+   · 1단계(햄스터는 갓 태어난 아기 · 올빼미는 알) → … → 10단계(황금 왕관), 그 뒤로는 10단계 그대로 */
 const PET_MAX_LEVEL = 10;
-const KST_OFFSET_MS = 9 * 60 * 60 * 1000;   // 한국은 서머타임이 없어 늘 +9시간이에요.
-
-/* 기기 시간대와 상관없이 한국 날짜(YYYY-MM-DD)를 셉니다. */
-function kstISO(ts) {
-  const d = new Date((ts == null ? Date.now() : ts) + KST_OFFSET_MS);
-  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
-}
-/* 그 날 자정(00:00 KST)의 epoch(ms) */
-function kstMidnightMs(isoDate) {
-  return Date.parse(isoDate + 'T00:00:00Z') - KST_OFFSET_MS;
-}
-/* 두 날짜가 며칠 떨어졌는지 (b - a) */
-function dayGapISO(a, b) {
-  return Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 86400000);
-}
+const FEED_PER_LEVEL = 5;   // 먹이 5개 = 한 레벨
 
 /* 아이마다 다른 동물이에요. 유온은 햄스터, 지온은 올빼미.
    · 햄스터는 포유류라 알을 낳지 않아요 — 1단계는 둥지에서 갓 태어난 아기, 2단계는 둥지 밖으로
-     얼굴을 내미는 뽀시래기로 시작해 자정마다 한 단계씩 자라 10단계 황금 왕관까지 갑니다.
+     얼굴을 내미는 뽀시래기로 시작해 먹이를 먹으며 10단계 황금 왕관까지 자랍니다.
    · 올빼미는 1단계 알 · 2단계 부화 그대로예요.
    startWord: 1단계를 부르는 말(다시 시작 안내에 씀) · waitLine: 새 펫이 기다리는 곳 */
 const PET_SPECIES = {
@@ -109,7 +97,7 @@ const PET_SPECIES = {
     ],
     says: [
       '아직 눈도 못 뜬 갓 태어난 아기예요. 따뜻한 둥지에서 하루 종일 쿨쿨 자요 💤',
-      '둥지 밖으로 얼굴을 쏙 내밀었어요! 내일 자정에 또 한 뼘 자랄 거예요 🌱',
+      '둥지 밖으로 얼굴을 쏙 내밀었어요! 먹이를 먹으면 또 한 뼘 자랄 거예요 🌱',
       '아장아장, 오늘도 한 걸음 더 자랐어요!',
       '꼬마 햄스터, 하루하루가 신나요!',
       '나는 오늘도 씩씩해요! 햄햄!',
@@ -132,8 +120,8 @@ const PET_SPECIES = {
       '모험가 올빼미', '탐험가 올빼미', '길잡이 올빼미', '별빛 올빼미', '전설의 황금 왕관 올빼미'
     ],
     says: [
-      '아직은 알 속에서 꼼지락꼼지락, 내일 자정이 지나면 알을 깨고 나와요!',
-      '부엉! 알을 깨고 나왔어요. 내일 자정에 또 자랄 거예요 🌱',
+      '아직은 알 속에서 꼼지락꼼지락, 먹이를 먹으면 알을 깨고 나와요!',
+      '부엉! 알을 깨고 나왔어요. 먹이를 먹으면 또 자랄 거예요 🌱',
       '아장아장, 오늘도 한 걸음 더 자랐어요!',
       '꼬마 올빼미, 하루하루가 신나요!',
       '나는 오늘도 씩씩해요! 부엉부엉!',
@@ -160,14 +148,14 @@ const PET_IMAGES = {
 /* 콕 눌렀을 때 하는 응원 한마디 — 태어난 지 얼마 안 된 때(1·2단계)·자라는 중·모험가·전설 네 묶음이에요. */
 const PET_LINES = {
   child1: [
-    ['꼬물꼬물, 둥지가 포근해서 기분 좋아요 💛', '아직은 잠이 솔솔 와요 💤', '자정이 지나면 또 한 뼘 자랄 거예요!'],
-    ['아장아장 걸음마 중이에요 🐹', '자정이 지나면 나도 한 뼘 자라요!', '천천히 가도 괜찮아요, 나처럼!'],
+    ['꼬물꼬물, 둥지가 포근해서 기분 좋아요 💛', '아직은 잠이 솔솔 와요 💤', '먹이를 먹으면 또 한 뼘 자랄 거예요!'],
+    ['아장아장 걸음마 중이에요 🐹', '먹이를 먹으면 나도 한 뼘 자라요!', '천천히 가도 괜찮아요, 나처럼!'],
     ['모험 갈 준비 완료! 어디로 갈까요? 🎒', '배낭 어때요? 든든하죠? 😎', '나침반은 언제나 네 편이에요 ✨', '같이 가면 멀어도 즐거워요!'],
     ['별빛 파워! ✨👑', '황금 왕관 햄스터가 응원할게요! 🌟', '햄햄, 오늘도 최고예요 💖', '우리집 최고의 햄스터! 🐹', '반짝반짝, 오늘도 완벽해요 ⭐']
   ],
   child2: [
-    ['톡톡, 알 속에서 기다리고 있어요 🥚', '조금만 기다려 주세요, 내일 자정에 만나요!', '따뜻한 알 속이 좋아요 💛'],
-    ['부엉! 걸음마 중이에요 🦉', '자정이 지나면 나도 한 뼘 자라요!', '같이 부엉부엉 노래해요!', '한 걸음 한 걸음이 신나요!'],
+    ['톡톡, 알 속에서 기다리고 있어요 🥚', '먹이를 먹고 나올게요, 조금만 기다려 주세요!', '따뜻한 알 속이 좋아요 💛'],
+    ['부엉! 걸음마 중이에요 🦉', '먹이를 먹으면 나도 한 뼘 자라요!', '같이 부엉부엉 노래해요!', '한 걸음 한 걸음이 신나요!'],
     ['배낭 어때요? 든든하죠? 🎒', '모험 가는 길이 제일 즐거워요!', '오늘도 씩씩한 올빼미! ✨', '같이 있으면 어디든 좋아요!'],
     ['별빛 마법 반짝! ✨👑', '황금 왕관 올빼미가 응원할게요! 🌟', '부엉부엉, 오늘도 최고예요 💖', '우리집 최고의 올빼미! 🦉', '반짝반짝, 오늘도 완벽해요 ⭐']
   ]
@@ -228,7 +216,7 @@ function hourLabel(h) {
 /* ---------------- 상태(데이터) ---------------- */
 /* 캐릭터 그림을 바꿀 때는 AVATAR_VER만 올리면 브라우저 캐시에 남은
    예전 그림 대신 새 그림을 바로 불러옵니다. */
-const AVATAR_VER = '20261122b';
+const AVATAR_VER = '20261122c';
 function avatarSrc(src) {
   if (typeof src !== 'string' || !src.startsWith('assets/')) return src;
   return src.split('?')[0] + '?v=' + AVATAR_VER;
@@ -269,9 +257,10 @@ const defaultQuests = () => ([
   { id: uid(), child: 'child2', emoji: '🎨', title: '그림 3장 그리기', goal: 3, progress: 0, reward: '미술 시간 늘리기', done: false }
 ]);
 
+/* level 1~10 · feedProgress 0~(FEED_PER_LEVEL-1) · feedGranted(후추가 준 쿠폰 누적) · feedUsed(아이가 쓴 쿠폰 누적) */
 function defaultPet(childId) {
   const sp = PET_SPECIES[childId] || PET_SPECIES.child1;
-  return { name: sp.defaultName, startedAt: kstISO(), hall: 0 };
+  return { name: sp.defaultName, level: 1, feedProgress: 0, feedGranted: 0, feedUsed: 0, hall: 0 };
 }
 
 function defaultPets() {
@@ -288,8 +277,12 @@ function mergePet(p, childId) {
     out.name = (PET_OLD_DEFAULT_NAMES[childId] || []).includes(nm) ? d.name : nm;
   }
   if (Number.isFinite(p.hall)) out.hall = Math.max(0, Math.round(p.hall));
-  // startedAt이 있으면 그 날부터 자란 단계를 그대로 잇습니다. 없으면(예전 XP 판) 오늘부터 Lv.1.
-  if (typeof p.startedAt === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(p.startedAt)) out.startedAt = p.startedAt;
+  // 먹이 판 기록. 예전 날짜(startedAt) 판이나 XP 판에서 올라온 기록은 이름·명예의 전당만 잇고 Lv.1부터 시작합니다.
+  if (Number.isFinite(p.level)) out.level = clamp(Math.round(p.level), 1, PET_MAX_LEVEL);
+  if (Number.isFinite(p.feedProgress)) out.feedProgress = clamp(Math.round(p.feedProgress), 0, FEED_PER_LEVEL - 1);
+  if (Number.isFinite(p.feedGranted)) out.feedGranted = Math.max(0, Math.round(p.feedGranted));
+  if (Number.isFinite(p.feedUsed)) out.feedUsed = Math.max(0, Math.round(p.feedUsed));
+  if (out.level >= PET_MAX_LEVEL) out.feedProgress = 0;
   return out;
 }
 
@@ -300,17 +293,10 @@ function mergePets(saved) {
   if (src.pets && typeof src.pets === 'object') {
     out.child1 = mergePet(src.pets.child1, 'child1');
     out.child2 = mergePet(src.pets.child2, 'child2');
-    ['child1', 'child2'].forEach(id => {
-      const p = src.pets[id];
-      if (!p || !/^\d{4}-\d{2}-\d{2}$/.test(p.startedAt || '')) petStartFilled = true;
-    });
     return out;
   }
   if (src.puppy && typeof src.puppy === 'object') {
     out.child1 = mergePet(src.puppy, 'child1');
-    petStartFilled = true;
-  } else if (!src.pets) {
-    petStartFilled = true;
   }
   return out;
 }
@@ -416,8 +402,6 @@ function mergeState(saved) {
    이 기기의 기록이 Web Crypto AES-GCM으로 암호화되어 저장돼요. */
 let state = null;
 let saveFailWarned = false;
-/* 예전 펫 기록(startedAt 없음)을 오늘 날짜로 채웠는지 — 채웠으면 한 번 저장해 둡니다. */
-let petStartFilled = false;
 
 const HAS_WEBCRYPTO = !!(window.crypto && window.crypto.subtle);
 
@@ -1567,13 +1551,13 @@ function toggleRoutine(childId, itemId) {
 
 /* =========================================================
    🐹🦉 우리집 펫 키우기 — 유온은 햄스터, 지온은 올빼미
-   · 성장은 오직 날짜로만 정해져요. startedAt(시작한 날, KST)에서
-     오늘이 며칠째인지 세어 매일 자정 00:00 KST에 한 단계씩 자랍니다.
-   · 할 일·루틴 체크와는 아무 상관이 없어요(그래서 XP도 없앴습니다).
+   · 성장은 먹이로만 정해져요. 먹이쿠폰 1개를 써서 🍽️ 먹이 주기를 누르면
+     feedUsed가 1 늘고, 먹이 5개(FEED_PER_LEVEL)마다 한 레벨 올라갑니다.
+   · 먹이쿠폰은 엄마가 후추(AI)에게 말해서 받아요. 이 화면에는 쿠폰을 만들거나
+     늘리는 곳이 없고, 후추가 클라우드(feedGranted)로 넣어 줄 때만 쿠폰이 늘어납니다.
    · 햄스터 1단계 아기 → 2단계 뽀시래기 → …, 올빼미 1단계 알 → 2단계 부화 → … → 10단계 황금 왕관.
    ========================================================= */
 const petSaySticky = { child1: '', child2: '' };
-let petMidnightTimer = null;
 
 function petIds() {
   const ids = state.members.filter(m => isChild(m.id)).map(m => m.id);
@@ -1608,16 +1592,30 @@ function petStages(childId) {
   }));
 }
 
-/* 처음 시작한 날(KST). 저장된 값이 이상하면 오늘부터 시작한 것으로 봅니다. */
-function petStartISO(childId) {
+/* 먹이 판 계산 — 현재 레벨, 이번 레벨에서 먹은 개수, 남은 먹이쿠폰 */
+function petLevel(childId) {
+  return clamp(Math.round(Number(petOf(childId).level) || 1), 1, PET_MAX_LEVEL);
+}
+/* 남은 먹이쿠폰 = 후추가 준 누적(feedGranted) - 아이가 쓴 누적(feedUsed) */
+function petCoupons(childId) {
   const p = petOf(childId);
-  return /^\d{4}-\d{2}-\d{2}$/.test(p.startedAt || '') ? p.startedAt : kstISO();
+  return Math.max(0, Math.round(Number(p.feedGranted) || 0) - Math.round(Number(p.feedUsed) || 0));
 }
-/* 시작한 날로부터 지난 날 수(0 = 첫날). 10단계에서 멈춥니다. */
-function petDays(childId) {
-  return clamp(dayGapISO(petStartISO(childId), kstISO()), 0, PET_MAX_LEVEL - 1);
+/* 이번 레벨에서 먹은 개수(0~4). 10단계 최고 단계에서는 게이지가 꽉 찬 것으로 봅니다. */
+function petFeedState(childId) {
+  const level = petLevel(childId);
+  const top = level >= PET_MAX_LEVEL;
+  const progress = top
+    ? FEED_PER_LEVEL
+    : clamp(Math.round(Number(petOf(childId).feedProgress) || 0), 0, FEED_PER_LEVEL - 1);
+  const coupons = petCoupons(childId);
+  return {
+    level, top, progress, coupons,
+    left: top ? 0 : FEED_PER_LEVEL - progress,
+    canFeed: !top && coupons > 0
+  };
 }
-function petLevel(childId) { return petDays(childId) + 1; }
+
 function petStageOf(childId, level) {
   const stages = petStages(childId);
   return stages[clamp(level || petLevel(childId), 1, stages.length) - 1];
@@ -1632,20 +1630,6 @@ function petLineGroup(level) {
   if (level <= 5) return 1;
   if (level <= 8) return 2;
   return 3;
-}
-
-/* 다음 단계까지 남은 시간과 오늘 하루가 얼마나 지났는지 */
-function petClock(childId) {
-  const level = petLevel(childId);
-  if (level >= PET_MAX_LEVEL) return { pct: 100, text: '10단계 완성 👑' };
-  const now = Date.now();
-  const start = kstMidnightMs(kstISO(now));
-  const pct = clamp(Math.round(((now - start) / 86400000) * 100), 0, 100);
-  const left = Math.max(0, start + 86400000 - now);
-  const h = Math.floor(left / 3600000);
-  const m = Math.floor((left % 3600000) / 60000);
-  const leftText = h > 0 ? `${h}시간 ${m}분` : (m > 0 ? `${m}분` : '곧');
-  return { pct, text: `다음 레벨까지 ${leftText}` };
 }
 
 function petCardEl(childId) {
@@ -1720,13 +1704,17 @@ function petCardHtml(childId) {
   const p = petOf(childId);
   const sp = petSpecies(childId);
   const stages = petStages(childId);
-  const level = petLevel(childId);
-  const days = petDays(childId);
+  const fs = petFeedState(childId);
+  const level = fs.level;
   const st = petStageOf(childId, level);
   const m = memberById(childId);
   const label = petLabel(childId);
-  const top = level >= PET_MAX_LEVEL;
-  const dayText = days === 0 ? '오늘 시작' : `${days + 1}일째`;
+  const pct = Math.round((fs.progress / FEED_PER_LEVEL) * 100);
+  const hint = fs.top
+    ? '먹이를 다 먹고 최고 단계까지 자랐어요!'
+    : (fs.coupons > 0
+      ? `먹이 ${FEED_PER_LEVEL}개마다 한 레벨 · 다음 레벨까지 ${fs.left}개`
+      : '엄마가 후추한테 말해서 먹이쿠폰을 줘야 줄 수 있어요!');
 
   return `<article class="pet-card lvl-${level}" data-pet="${childId}">
       <div class="pet-owner">
@@ -1746,14 +1734,19 @@ function petCardHtml(childId) {
         </div>
         <div><span class="pet-lv">Lv.${level} ${esc(st.label)}</span></div>
         <div class="pet-xp">
-          <div class="pet-bar"><i style="width:0%"></i></div>
+          <div class="pet-bar"><i style="width:${pct}%"></i></div>
           <div class="pet-xp-meta">
-            <span class="pet-xp-num">Lv.${level} / 10 · ${dayText}</span>
-            <span class="pet-next" data-countdown="${childId}"></span>
+            <span class="pet-xp-num" data-feed-num="${childId}">먹이 ${fs.progress} / ${FEED_PER_LEVEL}</span>
+            <span class="pet-next" data-feed-left="${childId}">${fs.top ? 'Lv.10 완성 👑' : `다음 레벨까지 ${fs.left}개`}</span>
           </div>
         </div>
+        <div class="pet-feed">
+          <span class="pet-coupon" title="후추가 준 먹이쿠폰 중 아직 안 쓴 개수">🎟️ 먹이쿠폰 <b data-coupon-count="${childId}">${fs.coupons}</b>개</span>
+          <button class="feed-btn" type="button" data-act="feed" ${fs.canFeed ? '' : 'disabled'} aria-label="${esc(p.name)} 먹이 주기">🍽️ 먹이 주기</button>
+        </div>
+        <p class="pet-feed-hint">${esc(hint)}</p>
         <p class="pet-say">${esc(petSaySticky[childId] || st.say)}</p>
-        ${top ? `<div class="pet-foot"><span class="pet-badge">👑 ${esc(st.title)} 달성!</span>
+        ${fs.top ? `<div class="pet-foot"><span class="pet-badge">👑 ${esc(st.title)} 달성!</span>
           <button class="soft-btn pink" type="button" data-act="new">새 ${esc(sp.name)} 키우기</button></div>` : ''}
       </div>
       <div class="pet-track" aria-hidden="true">
@@ -1765,17 +1758,62 @@ function petCardHtml(childId) {
     </article>`;
 }
 
-/* 남은 시간·막대는 15초마다 조용히 다시 칠합니다(카드 전체를 다시 그리지 않아요). */
+/* 먹이를 하나 먹여요 — 쿠폰 1개를 쓰고, 먹이 5개째에서 한 레벨 올라갑니다. */
+function petFeed(childId) {
+  const p = petOf(childId);
+  const fs = petFeedState(childId);
+  if (fs.top) {
+    toast(`${p.name}${josa(p.name, '은', '는')} 이미 Lv.${PET_MAX_LEVEL} 최고 단계예요! 👑`);
+    return;
+  }
+  if (fs.coupons <= 0) {
+    toast('🎟️ 먹이쿠폰이 없어요. 엄마가 후추한테 말해서 먹이쿠폰을 줘야 줄 수 있어요!');
+    return;
+  }
+  p.feedUsed = Math.max(0, Math.round(Number(p.feedUsed) || 0)) + 1;
+  const eaten = fs.progress + 1;
+  const leveled = eaten >= FEED_PER_LEVEL;
+  if (leveled) {
+    p.level = Math.min(PET_MAX_LEVEL, fs.level + 1);
+    p.feedProgress = 0;
+  } else {
+    p.feedProgress = eaten;
+  }
+  petSaySticky[childId] = '';
+  save();
+  renderPets();
+  if (leveled) {
+    const st = petStageOf(childId, p.level);
+    petBurst(childId, 16);
+    petHearts(childId, 5);
+    toast(p.level >= PET_MAX_LEVEL
+      ? `👑 ${p.name}${josa(p.name, '이', '가')} Lv.${PET_MAX_LEVEL} ${st.label} — 최고 단계 달성!`
+      : `🎉 ${p.name}${josa(p.name, '이', '가')} Lv.${p.level} ${st.label}${josa(st.label, '이', '가')} 되었어요!`);
+  } else {
+    petBurst(childId, 5);
+    toast(`🍽️ 냠냠! 다음 레벨까지 ${FEED_PER_LEVEL - eaten}개 남았어요`);
+  }
+}
+
+/* 먹이 진행·쿠폰·버튼은 1분마다 조용히 다시 칠합니다(카드 전체를 다시 그리지 않아요). */
 function paintPetClocks() {
   if (!state || !state.pets) return;
   petIds().forEach(id => {
     const card = petCardEl(id);
     if (!card) return;
-    const c = petClock(id);
+    const fs = petFeedState(id);
     const bar = card.querySelector('.pet-bar i');
-    if (bar) bar.style.width = c.pct + '%';
-    const txt = card.querySelector('[data-countdown]');
-    if (txt && txt.textContent !== c.text) txt.textContent = c.text;
+    if (bar) bar.style.width = Math.round((fs.progress / FEED_PER_LEVEL) * 100) + '%';
+    const num = card.querySelector('[data-feed-num]');
+    const numText = `먹이 ${fs.progress} / ${FEED_PER_LEVEL}`;
+    if (num && num.textContent !== numText) num.textContent = numText;
+    const left = card.querySelector('[data-feed-left]');
+    const leftText = fs.top ? 'Lv.10 완성 👑' : `다음 레벨까지 ${fs.left}개`;
+    if (left && left.textContent !== leftText) left.textContent = leftText;
+    const cnt = card.querySelector('[data-coupon-count]');
+    if (cnt && cnt.textContent !== String(fs.coupons)) cnt.textContent = String(fs.coupons);
+    const btn = card.querySelector('[data-act=feed]');
+    if (btn) btn.disabled = !fs.canFeed;
   });
 }
 
@@ -1790,31 +1828,6 @@ function renderPets() {
     grid.innerHTML = html;
   }
   paintPetClocks();
-}
-
-/* 자정(00:00 KST)에 새로고침 없이 다음 단계로 — 태블릿을 켜 둔 채여도 자라요. */
-function schedulePetMidnight() {
-  if (petMidnightTimer) clearTimeout(petMidnightTimer);
-  const now = Date.now();
-  const next = kstMidnightMs(kstISO(now)) + 86400000 + 1500;
-  petMidnightTimer = setTimeout(petMidnightTick, Math.max(2000, next - now));
-}
-
-function petMidnightTick() {
-  if (!appStarted) { schedulePetMidnight(); return; }
-  const grew = petIds().map(id => {
-    const raw = dayGapISO(petStartISO(id), kstISO());   // 오늘이 몇 일째인지(캡 없이)
-    return { id, level: petLevel(id), name: petOf(id).name, grew: raw >= 1 && raw <= PET_MAX_LEVEL - 1 };
-  }).filter(x => x.grew);
-  const prev = liveDate;
-  const today = todayISO();
-  if (today !== prev) { liveDate = today; refreshForNewDay(prev, grew.length > 0); }
-  renderPets();
-  if (grew.length) {
-    toast(`🌙 자정이 지나 ${grew.map(x => `${x.name} Lv.${x.level}`).join(' · ')}가 되었어요!`);
-    grew.forEach(x => petBurst(x.id, 14));
-  }
-  schedulePetMidnight();
 }
 
 function openPetNameModal(childId) {
@@ -1853,25 +1866,26 @@ function openPetNameModal(childId) {
   });
 }
 
-/* 어느 단계에서든 그 펫을 오늘부터 다시 Lv.1(햄스터는 아기 · 올빼미는 알)로 키웁니다.
-   이름과 명예의 전당(지난 펫 기록)은 그대로 두고 시작한 날만 오늘(KST)로 맞춰요. */
+/* 어느 단계에서든 그 펫을 다시 Lv.1(햄스터는 아기 · 올빼미는 알)로 키웁니다.
+   이름·명예의 전당(지난 펫 기록)·남은 먹이쿠폰은 그대로 두고 레벨과 먹이 진행만 처음으로 돌려요. */
 function openPetResetModal(childId) {
   const p = petOf(childId);
   const sp = petSpecies(childId);
-  const level = petLevel(childId);
-  const st = petStageOf(childId, level);
-  const nowText = level === 1
-    ? `지금 Lv.1 ${sp.startWord}라서 시작한 날만 오늘로 맞추면 처음 상태가 돼요.`
-    : `지금 Lv.${level} ${st.label}인데, 오늘부터 다시 ${sp.startWord}부터 자라요.`;
+  const fs = petFeedState(childId);
+  const st = petStageOf(childId, fs.level);
+  const nowText = fs.level === 1
+    ? `지금 Lv.1 ${sp.startWord}라서 먹이 진행만 처음으로 돌아가요.`
+    : `지금 Lv.${fs.level} ${st.label}인데, 다시 ${sp.startWord}부터 키울 수 있어요.`;
   confirmModal(
     `${p.name}${josa(p.name, '을', '를')} ${sp.startWord}부터 다시 시작할까요?`,
-    `${petLabel(childId)}의 ${p.name} — ${nowText} 이름과 명예의 전당 기록(🏆 ${p.hall})은 그대로 남아요.`,
+    `${petLabel(childId)}의 ${p.name} — ${nowText} 이름과 명예의 전당 기록(🏆 ${p.hall}), 남은 먹이쿠폰(${fs.coupons}개)은 그대로 남아요.`,
     `${sp.startWord}부터 다시 시작`,
     () => {
-      p.startedAt = kstISO();
+      p.level = 1;
+      p.feedProgress = 0;
       petSaySticky[childId] = '';
       save(); renderPets(); petBurst(childId, 10);
-      toast(`${petEmoji(childId)} ${p.name}${josa(p.name, '이', '가')} 오늘부터 다시 ${sp.startWord}부터 자라요`);
+      toast(`${petEmoji(childId)} ${p.name}${josa(p.name, '이', '가')} 다시 ${sp.startWord}부터 자라요`);
     },
     true
   );
@@ -1880,17 +1894,19 @@ function openPetResetModal(childId) {
 function openNewPetModal(childId) {
   const p = petOf(childId);
   const sp = petSpecies(childId);
+  const fs = petFeedState(childId);
   confirmModal(
     `새 ${sp.name} 키우기`,
-    `${petLabel(childId)}의 ${p.name}는 명예의 전당에 남고, 새 ${sp.name}가 오늘부터 Lv.1 ${sp.startWord}부터 자라요. 지금까지의 명예의 전당: ${p.hall}마리. 계속할까요?`,
+    `${petLabel(childId)}의 ${p.name}${josa(p.name, '은', '는')} 명예의 전당에 남고, 새 ${sp.name}${josa(sp.name, '을', '를')} Lv.1 ${sp.startWord}부터 키워요. 남은 먹이쿠폰(${fs.coupons}개)은 그대로 써요. 지금까지의 명예의 전당: ${p.hall}마리. 계속할까요?`,
     `새 ${sp.name} 키우기`,
     () => {
       p.hall = (p.hall || 0) + 1;
-      p.startedAt = kstISO();
+      p.level = 1;
+      p.feedProgress = 0;
       p.name = sp.defaultName;
       petSaySticky[childId] = '';
       save(); renderPets(); petBurst(childId, 14);
-      toast(`🏆 ${p.name}${josa(p.name, '이', '가')} 명예의 전당에 들어갔어요! ${petLabel(childId)}의 새 ${sp.name}가 ${sp.waitLine} ${sp.emoji}`);
+      toast(`🏆 ${p.name}${josa(p.name, '이', '가')} 명예의 전당에 들어갔어요! ${petLabel(childId)}의 새 ${sp.name}${josa(sp.name, '이', '가')} ${sp.waitLine} ${sp.emoji}`);
     }
   );
 }
@@ -2912,6 +2928,7 @@ function bindEvents() {
       const act = e.target.closest('[data-act]');
       if (!act) return;
       if (act.dataset.act === 'poke') petPoke(childId);
+      else if (act.dataset.act === 'feed') petFeed(childId);
       else if (act.dataset.act === 'rename') openPetNameModal(childId);
       else if (act.dataset.act === 'new') openNewPetModal(childId);
     });
@@ -2937,7 +2954,7 @@ function bindEvents() {
 
 /* 지금 화면의 배포 표식입니다. app.js를 고쳐 올릴 때 이 값을 함께 올려 두면
    켜 둔 태블릿이 새 배포를 알아채고 조용히 알려 줍니다. */
-const BUILD = '2026-11-22-3';
+const BUILD = '2026-11-22-4';
 const WAKE_PREF_KEY = 'urijip-wake-v1';
 const WEATHER_REFRESH_MS = 30 * 60 * 1000;   // 날씨·미세먼지 30분마다
 const VERSION_CHECK_MS = 60 * 60 * 1000;     // 새 배포 확인 1시간마다
@@ -3084,9 +3101,8 @@ function onDashboardVisible() {
     renderTodayMeal();
     renderMealWeek();
   }
-  // 잠에서 깼을 때 자정이 지나 있었으면 펫도 바로 새 단계로
+  // 잠에서 깼을 때 다른 기기가 먹이쿠폰을 줬거나 먹이를 줬으면 바로 반영
   renderPets();
-  schedulePetMidnight();
   if (Date.now() - lastWeatherAt >= 10 * 60 * 1000) {
     lastWeatherAt = Date.now();
     loadWeather();
@@ -3192,16 +3208,8 @@ function startApp() {
   lastWeatherAt = Date.now();
   loadWeather();
   initKiosk();
-  // 예전 펫 기록에 시작한 날을 새로 채웠다면, 오늘 날짜가 클라우드에도 남도록 한 번 저장합니다.
-  if (petStartFilled) {
-    petStartFilled = false;
-    save();
-    syncDirty = true;
-  }
-  // 시간표·급식의 지금/다음, 자정 날짜 전환, 날씨, 새 배포를 1분마다 조용히 맞춥니다.
+  // 시간표·급식의 지금/다음, 날짜 전환, 날씨, 새 배포를 1분마다 조용히 맞춥니다.
   setInterval(tickLive, 60000);
-  // 펫은 매일 자정(00:00 KST)에 정확히 한 단계 자랍니다.
-  schedulePetMidnight();
 }
 
 /* 볼트가 없는 판(예전 방식)에서만 쓰는 잠금 해제 */

@@ -1224,6 +1224,28 @@ h1,h2,h3,h4,p{margin:0}
 .pet-xp-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--ink-3)}
 .pet-xp-num{font-weight:800;color:#A0805F}
 .pet-next{font-weight:700;color:#B4687F}
+
+/* 먹이쿠폰 · 먹이 주기 */
+.pet-feed{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:5px}
+.pet-coupon{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:11.5px;font-weight:800;color:#8A6413;
+  background:linear-gradient(150deg,#FFF8E3,#FBEBBE);border:1px solid #F0DCA4;
+  border-radius:999px;padding:4px 10px;white-space:nowrap;
+}
+.pet-coupon b{font-family:var(--font-title);font-size:13.5px;font-weight:400;color:#7A5410;line-height:1}
+.feed-btn{
+  border:0;border-radius:12px;padding:7px 13px;
+  font-family:var(--font-title);font-size:13px;font-weight:400;letter-spacing:-.2px;
+  color:#5A4028;background:linear-gradient(160deg,#FFE2A8,#F6C768);
+  box-shadow:0 4px 12px rgba(226,178,90,.32);
+  transition:.16s ease;white-space:nowrap;
+}
+.feed-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 7px 16px rgba(226,178,90,.4)}
+.feed-btn:active:not(:disabled){transform:scale(.97)}
+.feed-btn:disabled{background:#F4EBDD;color:#BDAC99;box-shadow:none;cursor:not-allowed}
+.pet-feed-hint{margin:0;font-size:11px;line-height:1.45;color:#A48F7C;font-weight:700}
+.pet-card.lvl-10 .pet-feed-hint{color:#8A6413}
 .pet-say{
   font-family:var(--font-hand);font-size:15px;line-height:1.4;color:#7A6555;
   background:#FFF8EC;border:1px dashed #F3E3CB;border-radius:14px;
